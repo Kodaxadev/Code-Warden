@@ -1,0 +1,14 @@
+{
+  "thresholds": {
+    "max_file_length": 400,
+    "pre_flight_trigger_lines": 150,
+    "human_checkpoint_files": 2
+  },
+  "safety": {
+    "exempt_from_blast_radius": [
+      "tests/",
+      "docs/",
+      "scripts/"
+    ]
+  }
+}

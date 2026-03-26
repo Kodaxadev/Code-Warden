@@ -1,16 +1,21 @@
 # Context Integrity & Anti-Drift
 
 ## Anchor Check (Pre-Flight)
-Before delivering any contiguous code block exceeding 150 lines, prepend a pre-flight
-summary the human can verify at a glance:
+Before delivering any contiguous code block exceeding the `pre_flight_trigger_lines` from `codewarden.json` (default 150 lines), output a structurally valid JSON pre-flight manifest:
 
-> **Pre-flight:**
-> - **File:** `[filename]` — **Lines:** [count] / 400 max
-> - **Concern:** [single stated responsibility of this file]
-> - **Secrets:** [none | env-var sourced: list which vars]
-> - **Files changed this action:** [list all filenames]
+```json
+{
+  "pre_flight": {
+    "file": "[filename]",
+    "estimated_lines": "[count]",
+    "concern": "[single stated responsibility of this file]",
+    "secrets": ["[none]", "env-var sourced: [vars]"],
+    "files_changed_this_action": ["[filenames]"]
+  }
+}
+```
 
-This is a verifiable manifest, not a self-certification. The human should be able to
+This JSON manifest is parsed by downstream UI/tools. The human should be able to
 spot-check every field. If any field can't be filled accurately, stop and re-scope.
 
 ## Session Scoping

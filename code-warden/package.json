@@ -1,0 +1,13 @@
+{
+  "name": "code-warden",
+  "version": "2.3.0",
+  "description": "Production-grade AI development governance skill for Claude Code.",
+  "main": "SKILL.md",
+  "scripts": {
+    "lint": "node tools/warden-lint.js",
+    "check-secrets": "node tools/verify-secrets.js",
+    "get-context": "node tools/get-context.js"
+  },
+  "author": "Justin Davis",
+  "license": "MIT"
+}

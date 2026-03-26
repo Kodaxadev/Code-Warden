@@ -11,7 +11,7 @@ description: >
   "load code-warden", "governance check", or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 2.2.3
+  version: 2.3.0
   category: development-governance
   changelog: |
     v2.2.3 (2026-03-25): Replaced soft checkbox Session Start Checklist with mandatory
@@ -28,7 +28,7 @@ metadata:
     v2.0.0: Initial production release with Session Start Checklist and Quick Rules
 ---
 
-# code-warden v2.2.3
+# code-warden v2.3.0
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,
@@ -40,13 +40,15 @@ Do not ask implementation questions. Do not gather requirements. Do not
 proceed past this block until all three outputs are produced and confirmed
 by the user.
 
+**Before responding, execute `node ~/.claude/skills/code-warden/tools/get-context.js` if you lack architectural context.**
+
 **Output this block verbatim as your FIRST response before anything else:**
 
 ---
 
 **ARCHITECTURE STATE** (Re-injection Rule)
 
-[Paste the user's architecture doc or PRD here. If none provided, write:]
+[Paste the context found by `get-context.js` or provided by user. If none found, write:]
 
 > ⚠️ No architecture doc found — applying Re-injection Fallback:
 > - Last known files: [list any files mentioned in this session]
@@ -68,7 +70,7 @@ by the user.
 **REFERENCE FILES LOADED** (Blueprint Rule)
 
 > For this task, loading: [list relevant references/ files]
-> Status: [✅ found | ⚠️ missing from install — rules enforced from SKILL.md]
+> Status: [✅ found | ⚠️ missing from install — rules enforced from prompt]
 
 ---
 
@@ -77,12 +79,12 @@ information above.**
 
 ## Quick Rules
 
-- **Max file size**: 400 lines — split into modules at the limit
-- **Editing mode**: patch/diff first — no full rewrites without blast radius check
-- **Feedback mode**: adversarial — correctness over comfort, push back on weak logic
-- **Secrets**: zero-trust — .env only, no hardcoded keys or placeholder tokens
-- **Uncertainty**: say so — never guess niche syntax or stale API behavior
-- **Concerns**: one responsibility per file — support human auditing
+- **Max file size**: Enforced by `warden-lint.js` (default 400 lines) - split into modules at the limit.
+- **Editing mode**: Patch/diff first — no full rewrites without blast radius check.
+- **Feedback mode**: Adversarial — correctness over comfort, push back on weak logic.
+- **Secrets**: Zero-trust — Enforced by `verify-secrets.js`. No hardcoded keys.
+- **Uncertainty**: Say so — never guess niche syntax or stale API behavior.
+- **Concerns**: One responsibility per file — support human auditing.
 
 ## Reference Files
 
@@ -101,7 +103,10 @@ Stop and re-anchor immediately if any of these appear:
 | Signal | Action |
 |--------|--------|
 | Guessed library syntax without searching docs | Search live docs, correct output |
-| Unexplained contiguous block >150 lines | Split or justify before continuing |
+| Unexplained contiguous block > limit | Run `warden-lint.js`, split if needed |
 | Skipped Blast Radius Check before a rewrite | Run check before proceeding |
 | No `[AWAITING CONFIRMATION]` before >2-file change | Pause and request confirmation |
 | Monolithic file output without module split | Refactor into separated concerns |
+
+All limits and thresholds are defined in `codewarden.json`.
+

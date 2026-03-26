@@ -18,7 +18,9 @@ Any session involving structural changes must open by re-stating:
 - Never assume prior session context has carried over
 
 ## Re-injection Fallback
-If no architecture doc exists:
-- Restate the last 3 file dependencies
-- Restate the current data flow
-- Flag that a formal architecture doc should be created
+If no architecture doc exists in context:
+- Execute `~/.claude/skills/code-warden/tools/get-context.js` to attempt to automatically locate and parse the project's foundational documents.
+- If the tool fails or no docs exist:
+  - Restate the last 3 file dependencies
+  - Restate the current data flow
+  - Flag that a formal architecture doc should be created
