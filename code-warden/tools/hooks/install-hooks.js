@@ -89,7 +89,7 @@ function installHooks(skillDir) {
     if (!fs.existsSync(p)) {
       console.error('[CodeWarden] Hooks require an installed Claude target.');
       console.error(`[CodeWarden] Missing: ${p}`);
-      console.error('[CodeWarden] Run: node install.js --target=claude');
+      console.error('[CodeWarden] Run: node install.js --target=claude --all');
       process.exit(1);
     }
   }

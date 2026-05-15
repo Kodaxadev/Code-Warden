@@ -23,7 +23,8 @@ const CONFIG_PATH = path.join(os.homedir(), '.claude', 'skills', 'code-warden', 
 let MAX_LINES = 400;
 try {
   const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  if (typeof cfg.max_file_length === 'number') MAX_LINES = cfg.max_file_length;
+  const configured = cfg?.thresholds?.max_file_length ?? cfg?.max_file_length;
+  if (typeof configured === 'number') MAX_LINES = configured;
 } catch {}
 
 // ---------------------------------------------------------------------------
