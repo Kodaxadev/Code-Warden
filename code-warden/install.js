@@ -5,12 +5,14 @@
  * Scans for installed AI apps and deploys the skill to each detected target.
  *
  * Usage:
- *   node install.js                         # scan, prompt, install
- *   node install.js --all                   # scan, install all without prompt
- *   node install.js --dry-run               # scan, show plan, write nothing
- *   node install.js --list                  # show detection results and exit
- *   node install.js --doctor                # verify installation health per detected target
- *   node install.js --target=claude,cursor  # force specific targets (warns if not detected)
+ *   node install.js                              # scan, prompt, install
+ *   node install.js --all                        # scan, install all without prompt
+ *   node install.js --dry-run                    # scan, show plan, write nothing
+ *   node install.js --list                       # show detection results and exit
+ *   node install.js --doctor                     # verify health of all detected installs
+ *   node install.js --verify-target=claude       # strict health check for one target; exits nonzero if unknown or not installed
+ *   node install.js --verify-target=claude,warp  # check multiple targets
+ *   node install.js --target=claude,cursor       # force specific targets (warns if not detected)
  */
 
 const fs       = require('fs');
@@ -136,15 +138,17 @@ function installTarget(target, dryRun) {
 
 function parseArgs(argv) {
   const args = argv.slice(2);
+  const pick = prefix => {
+    const a = args.find(a => a.startsWith(prefix));
+    return a ? a.split('=')[1].split(',').map(s => s.trim()) : null;
+  };
   return {
     dryRun:       args.includes('--dry-run'),
     all:          args.includes('--all'),
     list:         args.includes('--list'),
     doctor:       args.includes('--doctor'),
-    targetFilter: (() => {
-      const t = args.find(a => a.startsWith('--target='));
-      return t ? t.split('=')[1].split(',').map(s => s.trim()) : null;
-    })(),
+    targetFilter: pick('--target='),
+    verifyTarget: pick('--verify-target='),
   };
 }
 
@@ -153,65 +157,99 @@ function parseArgs(argv) {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Doctor — verify installation health
+// Doctor helpers — shared by --doctor and --verify-target
 // ---------------------------------------------------------------------------
 
-function runDoctor(scanned) {
-  const issues = [];
-
-  function check(label, pass) {
-    if (pass) ok(label);
-    else { fail(label); issues.push(label); }
-  }
-
-  // Source integrity
+function checkSourceIntegrity(issues) {
+  const check = (label, pass) => {
+    if (pass) ok(label); else { fail(label); issues.push(label); }
+  };
   log('Checking source integrity...\n');
-  check('SKILL.md present',              fs.existsSync(path.join(SOURCE_DIR, 'SKILL.md')));
-  check('references/ present',           fs.existsSync(path.join(SOURCE_DIR, 'references')));
-  check('tools/get-context.js present',  fs.existsSync(path.join(SOURCE_DIR, 'tools', 'get-context.js')));
-  check('tools/warden-lint.js present',  fs.existsSync(path.join(SOURCE_DIR, 'tools', 'warden-lint.js')));
+  check('SKILL.md present',                fs.existsSync(path.join(SOURCE_DIR, 'SKILL.md')));
+  check('references/ present',             fs.existsSync(path.join(SOURCE_DIR, 'references')));
+  check('tools/get-context.js present',    fs.existsSync(path.join(SOURCE_DIR, 'tools', 'get-context.js')));
+  check('tools/warden-lint.js present',    fs.existsSync(path.join(SOURCE_DIR, 'tools', 'warden-lint.js')));
   check('tools/verify-secrets.js present', fs.existsSync(path.join(SOURCE_DIR, 'tools', 'verify-secrets.js')));
   const scripts = Object.keys(PKG.scripts || {});
   check('package.json: install-auto script',    scripts.includes('install-auto'));
   check('package.json: install-dry-run script', scripts.includes('install-dry-run'));
+}
 
+function checkTarget(t, issues) {
+  const check = (label, pass) => {
+    if (pass) ok(label); else { fail(label); issues.push(label); }
+  };
+  if (t.format === 'windsurf-flat') {
+    const flatFile = path.join(t.skillsDir, `${SKILL_NAME}.md`);
+    console.log(`  ${t.name}`);
+    check(`    Windsurf flat file present (${flatFile})`, fs.existsSync(flatFile));
+  } else {
+    const installDir   = path.join(t.skillsDir, SKILL_NAME);
+    const manifestPath = path.join(installDir, '.code-warden-install.json');
+    const skillMdPath  = path.join(installDir, 'SKILL.md');
+    console.log(`  ${t.name} (${installDir})`);
+    const hasManifest = fs.existsSync(manifestPath);
+    check('    Manifest (.code-warden-install.json) present', hasManifest);
+    if (hasManifest) {
+      try {
+        const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        check(`    Manifest version current (${m.version} == ${VERSION})`, m.version === VERSION);
+      } catch {
+        fail('    Manifest present but could not be parsed');
+        issues.push(`${t.id}: manifest parse error`);
+      }
+    }
+    check('    SKILL.md present in install dir', fs.existsSync(skillMdPath));
+  }
+  console.log('');
+}
+
+// ---------------------------------------------------------------------------
+// Doctor — verify source integrity + all detected installs
+// ---------------------------------------------------------------------------
+
+function runDoctor(scanned) {
+  const issues = [];
+  checkSourceIntegrity(issues);
   console.log('');
   log('Checking installed targets...\n');
+  const detected = scanned.filter(t => t.detected);
+  if (detected.length === 0) console.log('  -- No targets detected on this machine.\n');
+  for (const t of detected) checkTarget(t, issues);
+  const count = issues.length;
+  log(`Doctor complete. ${count === 0 ? 'No issues found.' : `${count} issue(s) found.`}`);
+  if (count > 0) process.exit(1);
+}
 
-  const detectedTargets = scanned.filter(t => t.detected);
+// ---------------------------------------------------------------------------
+// Verify-target — strict per-target health check
+// ---------------------------------------------------------------------------
 
-  if (detectedTargets.length === 0) {
-    console.log('  -- No targets detected on this machine.\n');
+function runVerifyTarget(ids) {
+  const knownIds = TARGETS.map(t => t.id);
+  const issues   = [];
+
+  // Validate all requested IDs before doing any checks
+  const unknown = ids.filter(id => !knownIds.includes(id));
+  if (unknown.length > 0) {
+    for (const id of unknown) {
+      console.error(`[CodeWarden] [FAIL] Unknown target ID: "${id}"`);
+    }
+    console.error(`[CodeWarden]        Known IDs: ${knownIds.join(', ')}`);
+    process.exit(1);
   }
 
-  for (const t of detectedTargets) {
-    if (t.format === 'windsurf-flat') {
-      const flatFile = path.join(t.skillsDir, `${SKILL_NAME}.md`);
-      console.log(`  ${t.name}`);
-      check(`    Windsurf flat file present (${flatFile})`, fs.existsSync(flatFile));
-    } else {
-      const installDir   = path.join(t.skillsDir, SKILL_NAME);
-      const manifestPath = path.join(installDir, '.code-warden-install.json');
-      const skillMdPath  = path.join(installDir, 'SKILL.md');
-      console.log(`  ${t.name} (${installDir})`);
-      const hasManifest = fs.existsSync(manifestPath);
-      check('    Manifest (.code-warden-install.json) present', hasManifest);
-      if (hasManifest) {
-        try {
-          const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-          check(`    Manifest version current (${m.version} == ${VERSION})`, m.version === VERSION);
-        } catch {
-          fail('    Manifest present but could not be parsed');
-          issues.push(`${t.id}: manifest parse error`);
-        }
-      }
-      check('    SKILL.md present in install dir', fs.existsSync(skillMdPath));
-    }
-    console.log('');
+  checkSourceIntegrity(issues);
+  console.log('');
+  log(`Checking target(s): ${ids.join(', ')}\n`);
+
+  for (const id of ids) {
+    const t = TARGETS.find(t => t.id === id);
+    checkTarget(t, issues);
   }
 
   const count = issues.length;
-  log(`Doctor complete. ${count === 0 ? 'No issues found.' : `${count} issue(s) found.`}`);
+  log(`Verify-target complete. ${count === 0 ? 'No issues found.' : `${count} issue(s) found.`}`);
   if (count > 0) process.exit(1);
 }
 
@@ -224,13 +262,19 @@ function destPath(target) {
 }
 
 async function main() {
-  const { dryRun, all, list, doctor, targetFilter } = parseArgs(process.argv);
+  const { dryRun, all, list, doctor, targetFilter, verifyTarget } = parseArgs(process.argv);
 
   log(`Auto-Installer v${VERSION}`);
   log('Scanning for installed AI apps...\n');
 
   // Step 1: Detection — annotate all targets, never mutate detected field here
   const scanned = scanTargets(TARGETS);
+
+  // --verify-target: strict per-target check — unknown ID or missing install exits 1
+  if (verifyTarget) {
+    runVerifyTarget(verifyTarget);
+    return;
+  }
 
   // --doctor: verify health of source + all detected installs, then exit
   if (doctor) {

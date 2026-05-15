@@ -12,9 +12,12 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 2.7.1
+  version: 2.8.0
   category: development-governance
   changelog: |
+    v2.8.0 (2026-05-15): Added --verify-target=<id> strict per-target health check.
+      Unknown target IDs exit nonzero. Known but not-installed targets exit nonzero.
+      Added npm scripts: install-list, install-doctor.
     v2.7.1 (2026-05-15): Added Scope Gate and Plan Gate pre-implementation declaration
       blocks. Both gates must be confirmed before any code is written. Covers goal,
       non-goals, files in/out, patch order, blast radius class, and post-patch checks.
@@ -38,7 +41,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v2.7.1
+# code-warden v2.8.0
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,
