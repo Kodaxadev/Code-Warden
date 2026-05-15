@@ -5,7 +5,7 @@
 #
 # What it enforces:
 #   - File length limits (warden-lint.js, default 400 lines per codewarden.json)
-#   - Zero-trust secrets (verify-secrets.js, 12+ hardcoded-credential patterns)
+#   - Zero-trust secrets (verify-secrets.js, hardcoded-credential patterns)
 #
 # How code-warden is made available in CI (choose one):
 #
@@ -33,7 +33,7 @@ on:
     branches: [main, master]
 
 env:
-  CODE_WARDEN_VERSION: v2.7.0
+  CODE_WARDEN_VERSION: v3.0.0
   CODE_WARDEN_PATH: .code-warden-ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 

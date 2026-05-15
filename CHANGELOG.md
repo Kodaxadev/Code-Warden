@@ -1,0 +1,155 @@
+# Changelog
+
+All notable changes to code-warden are documented here.
+Versions follow [Semantic Versioning](https://semver.org/).
+
+---
+
+## v3.0.0 — 2026-05-15
+
+**Optional Claude Code hooks package.**
+
+- Added `tools/hooks/warden-lint-hook.js` — `PreToolUse` hook that blocks `Write`/`Edit` if the resulting file would exceed the configured line limit
+- Added `tools/hooks/warden-secrets-hook.js` — `PreToolUse` hook that blocks `Write`/`Edit` if content contains a hardcoded credential pattern
+- Added `tools/hooks/install-hooks.js` — merges code-warden hook entries into `~/.claude/settings.json`; idempotent via description marker; guards against missing skill install
+- Added `tools/hooks/uninstall-hooks.js` — removes code-warden hook entries and cleans empty arrays/objects
+- `install.js`: added `--hooks=claude` and `--uninstall-hooks=claude` flags
+- `install.js`: `--doctor` and `--verify-target=claude` now validate hook script paths when hooks are registered
+- Hooks use exec form (`node /path/to/hook.js`) — no shell differences across Windows, macOS, Linux
+- Config reads `thresholds.max_file_length` from installed `codewarden.json` with flat key fallback
+- ADR recorded in `DECISIONS.md`: hooks live inside the installed skill path, not a neutral copy directory
+
+---
+
+## v2.8.0 — 2026-05-15
+
+**Strict per-target health check.**
+
+- Added `--verify-target=<id>` — unknown target ID exits nonzero immediately with known ID list printed; known but not-installed target exits nonzero (no silent skip)
+- Refactored `runDoctor` into shared `checkSourceIntegrity()` and `checkTarget()` helpers used by both `--doctor` and `--verify-target`
+- Added npm scripts: `install-list`, `install-doctor`
+
+---
+
+## v2.7.1 — 2026-05-15
+
+**Scope Gate and Plan Gate.**
+
+- Added `references/planning-gates.md` — two mandatory pre-implementation declaration blocks
+- **Scope Gate**: goal (one sentence), non-goals, files in (contract), files out, verify commands, rollback (concrete command)
+- **Plan Gate**: numbered patch order, blast radius class (CONTAINED / MODERATE / HIGH), human checkpoint, post-patch checks
+- Both gates hard-fail: no partial gates, no implementation until confirmed
+- SKILL.md: session start now enumerates all five steps; Scope Gate and Plan Gate added to Quick Rules, Reference Files, and Drift Signals table
+- Windsurf adapter: `planning-gates` added first in concatenation order
+
+---
+
+## v2.7.0 — 2026-05-15
+
+**GitHub Actions CI integration.**
+
+- Added `.github/workflows/code-warden.yml` — the code-warden repo now runs its own quality gate on every push and PR: lint, secrets scan, doctor
+- Added `templates/ci/github-actions.yml` — copy-paste template for any GitHub Actions project; downloads release zip at CI time (Option A) or commits skill files (Option B); version pinnable via `CODE_WARDEN_VERSION`
+- Added `npm run ci` — lint + secrets + doctor in one command; suitable as pre-commit hook or CI step
+- Added CI badge to README
+- `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` and `node-version: '24'` to suppress Node.js 20 deprecation warnings
+
+---
+
+## v2.6.0 — 2026-05-15
+
+**Cross-platform auto-installer.**
+
+- Added `install.js` — root entry point with `--dry-run`, `--all`, `--list`, `--doctor`, `--target=` flags
+- Added `tools/auto-targets.js` — target registry for Claude Code, Cursor, Warp, OpenAI Codex, Generic Agents, Windsurf
+- Added `tools/auto-detect.js` — three-signal detection: binary in PATH, config dir in HOME, app install path
+- Added `tools/auto-windsurf-adapter.js` — concatenates `SKILL.md` + all references into a single flat `.md` for Windsurf's rules format
+- Atomic install: copy to `.tmp` → write manifest → remove old → rename into place
+- `.code-warden-install.json` manifest records version, target, format, timestamp per install
+- `--doctor` checks source integrity and per-target manifest version, SKILL.md presence
+- `warden-lint.js` and `verify-secrets.js` updated to support directory expansion — `npm run lint .` and `npm run check-secrets .` now scan full project trees
+- Added npm scripts: `install-auto`, `install-dry-run`, `lint`, `check-secrets`, `get-context`
+
+---
+
+## v2.5.0 — 2026-05-14
+
+**Research and fit governance.**
+
+- Added `references/research-and-fit.md` — forces live research for current/version-specific facts; requires explicit fit check before defaulting to familiar stacks (Node, React, SaaS dashboards, CRUD admins, auth-first scaffolds)
+- Wired into SKILL.md Quick Rules, Drift Signals, and Reference Files
+- Updated `references/cognition.md` and `references/anti-drift.md` to reference fit checks
+
+---
+
+## v2.4.0 — 2026-05-14
+
+**Operational governance layer.**
+
+- Added `references/operations.md` — covers verification-before-completion, source-control hygiene, dependency and supply-chain control, evidence standards for technical claims
+- Wired into SKILL.md Quick Rules, Drift Signals, and Reference Files
+
+---
+
+## v2.3.1 — 2026-05-14
+
+**Codex and shared-agent install support.**
+
+- Added `~/.agents/skills/code-warden` as default install target for shared agent runtimes
+- Added `AGENTS.md` to `get-context.js` candidate list for Codex-style repositories
+- Normalized tool output to ASCII status tags for Windows PowerShell compatibility
+- Added `codex` target alongside `claude` and generic agents
+
+---
+
+## v2.3.0 — 2026-03-26
+
+**Secret scanner, Windows installer, README, version sync.**
+
+- Strengthened `verify-secrets.js` with 13 named patterns: OpenAI `sk-`, GitHub `ghp_`/`gho_`/`ghs_`/`ghx_`, AWS `AKIA`, Stripe `sk_live_`/`sk_test_`, bearer tokens, generic key/password assignments
+- Added `install.ps1` for Windows
+- Added `README.md`
+- Added `CLAUDE.md` and `.claude/CLAUDE.md` to `get-context.js` candidate list
+- Version synced across all metadata files
+
+---
+
+## v2.2.3 — 2026-03-25
+
+- Replaced soft checklist with mandatory Hard Gate output block at session start
+- Agent must produce Architecture State, Session Scope, and Reference Files before proceeding
+
+---
+
+## v2.2.2 — 2026-03-25
+
+- Added verifiable Pre-Flight manifest
+- Added `CONFIGURE.md` with tunable thresholds and team-size profiles
+- Added `examples/governed-session.md` annotated example
+
+---
+
+## v2.2.1 — 2026-03-25
+
+- Fixed reference paths, trigger phrases, `DECISIONS.md` stub
+- Aligned Human Checkpoint threshold: changed from >3 files to >2 files across `cognition.md` and Drift Signals
+
+---
+
+## v2.2.0
+
+- Added `references/anti-drift.md` — Pre-Flight Anchor Check, Session Scoping, Drift Trigger Response Protocol
+
+---
+
+## v2.1.0
+
+- Split monolithic `SKILL.md` into modular reference files under `references/`
+- `architecture.md`, `safety.md`, `cognition.md`, `cleanup.md`, `anti-drift.md`
+- Lazy-load model: agent reads only the files relevant to the current task
+
+---
+
+## v2.0.0
+
+Initial production release. Skill-level governance for Claude Code covering modular architecture, adversarial feedback, patch-first editing, blast-radius safety, and zero-trust secrets.
