@@ -35,6 +35,7 @@ on:
 env:
   CODE_WARDEN_VERSION: v2.7.0
   CODE_WARDEN_PATH: .code-warden-ci
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   code-warden:
@@ -48,7 +49,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       # Option A: download from GitHub release (remove if using Option B)
       - name: Install Code-Warden
