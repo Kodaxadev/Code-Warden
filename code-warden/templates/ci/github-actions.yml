@@ -1,0 +1,65 @@
+# Code-Warden Quality Gate — Project Template
+# https://github.com/Kodaxadev/Code-Warden
+#
+# Copy this file to .github/workflows/code-warden.yml in your project.
+#
+# What it enforces:
+#   - File length limits (warden-lint.js, default 400 lines per codewarden.json)
+#   - Zero-trust secrets (verify-secrets.js, 12+ hardcoded-credential patterns)
+#
+# How code-warden is made available in CI (choose one):
+#
+#   Option A — Download from release (recommended, no files to commit)
+#     Set CODE_WARDEN_VERSION below to pin a specific release.
+#     The "Install Code-Warden" step downloads and extracts automatically.
+#
+#   Option B — Commit to your repo
+#     Run: node /path/to/code-warden/install.js --target=claude
+#     Add .claude/skills/code-warden/ to git tracking.
+#     Set CODE_WARDEN_PATH: .claude/skills/code-warden
+#     Remove the "Install Code-Warden" step.
+#
+# Customise thresholds in codewarden.json after install:
+#   max_file_length          (default 400 lines)
+#   pre_flight_trigger_lines (default 150 lines)
+#   human_checkpoint_files   (default 2 files)
+
+name: Code-Warden Quality Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CODE_WARDEN_VERSION: v2.7.0
+  CODE_WARDEN_PATH: .code-warden-ci
+
+jobs:
+  code-warden:
+    name: Code-Warden Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Option A: download from GitHub release (remove if using Option B)
+      - name: Install Code-Warden
+        run: |
+          curl -fsSL -o cw.zip \
+            "https://github.com/Kodaxadev/Code-Warden/releases/download/${{ env.CODE_WARDEN_VERSION }}/code-warden-${{ env.CODE_WARDEN_VERSION }}.zip"
+          mkdir -p ${{ env.CODE_WARDEN_PATH }}
+          unzip -q cw.zip -d ${{ env.CODE_WARDEN_PATH }}
+
+      - name: Lint — enforce file length limits
+        run: node ${{ env.CODE_WARDEN_PATH }}/tools/warden-lint.js .
+
+      - name: Secrets — zero-trust scan
+        run: node ${{ env.CODE_WARDEN_PATH }}/tools/verify-secrets.js .

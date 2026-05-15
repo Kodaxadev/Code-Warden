@@ -4,6 +4,8 @@
   <img src="logo/codewarden.png" alt="code-warden logo" width="160" />
 </p>
 
+[![Code-Warden Quality Gate](https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg)](https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml)
+
 A production-grade AI development governance skill for Codex, Claude Code, and Cowork.
 
 Enforces modular architecture, adversarial feedback, patch-first editing,
@@ -90,6 +92,32 @@ Every AI coding session gets:
 Thresholds are opinionated defaults tuned for solo developers. See
 `code-warden/CONFIGURE.md` for the full table and team-size profiles.
 
+## CI Integration
+
+Add code-warden enforcement to any GitHub Actions pipeline:
+
+```yaml
+- name: Install Code-Warden
+  run: |
+    curl -fsSL -o cw.zip \
+      https://github.com/Kodaxadev/Code-Warden/releases/download/v2.7.0/code-warden-v2.7.0.zip
+    unzip -q cw.zip -d .code-warden-ci
+
+- name: Lint — file length limits
+  run: node .code-warden-ci/tools/warden-lint.js .
+
+- name: Secrets — zero-trust scan
+  run: node .code-warden-ci/tools/verify-secrets.js .
+```
+
+Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templates/ci/github-actions.yml)
+
+Or run locally:
+
+```bash
+npm run ci   # lint + secrets + doctor in one command
+```
+
 ## Version
 
-v2.6.0 - See `code-warden/SKILL.md` metadata for changelog.
+v2.7.0 - See `code-warden/SKILL.md` metadata for changelog.

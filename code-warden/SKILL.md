@@ -12,9 +12,11 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 2.6.0
+  version: 2.7.0
   category: development-governance
   changelog: |
+    v2.7.0 (2026-05-15): Added GitHub Actions CI template and npm run ci script.
+      Code-Warden now enforces file length and zero-trust secrets outside the chat session.
     v2.6.0 (2026-05-15): Added cross-platform auto-installer with app detection,
       atomic install, --doctor health checks, and Windsurf flat-file adapter.
     v2.5.0 (2026-05-14): Added Research and Fit governance to force live research
@@ -33,7 +35,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v2.6.0
+# code-warden v2.7.0
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,
