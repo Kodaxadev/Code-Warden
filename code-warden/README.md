@@ -1,25 +1,19 @@
-# CodeWarden
+# code-warden
 
-> Production-grade AI development governance skill for Codex, Claude Code, and Cowork.
+> Portable AI Coding Governance Layer
 
-CodeWarden enforces modular architecture, adversarial feedback, patch-first editing,
-blast-radius safety, zero-trust secrets, and context-drift prevention in every
-AI-assisted coding session.
+Code-Warden is a portable governance layer for AI coding agents. It enforces scoped planning, patch discipline, file-size limits, zero-trust secrets, verification evidence, install health, and optional Claude Code pre-tool-use blocking.
 
-## What It Does
+## Four Layers
 
-When loaded, CodeWarden forces an AI coding agent to behave like a disciplined senior engineer:
+| Layer | What it does |
+|-------|-------------|
+| **Skill governance** | Scope Gate, Plan Gate, blast-radius checks, patch-first editing, research gates, drift signals, verification evidence |
+| **Local verification** | `warden-lint`, `verify-secrets`, `get-context` — directory-aware, no external deps |
+| **Installer and health** | Cross-app auto-installer, manifest-backed installs, `--doctor`, `--verify-target`, Windsurf adapter |
+| **Hard enforcement** | Claude Code `PreToolUse` hooks — block oversized writes and hardcoded secrets before the file system is touched |
 
-- **Hard Gate session start**: Architecture state, session scope, and reference file status must be declared before implementation begins.
-- **Blast Radius Check**: Every rewrite names what might break, how it will be tested, and a one-step rollback command.
-- **Patch-first editing**: Diffs over rewrites; full rewrites require explicit confirmation.
-- **Zero-trust secrets**: Enforced by `tools/verify-secrets.js`; no hardcoded keys.
-- **File size limit**: Enforced by `tools/warden-lint.js` (default 400 lines).
-- **Context drift prevention**: Architecture re-injection and pre-flight manifests keep the agent anchored to scope.
-- **Operational discipline**: Verification evidence, source-control hygiene, dependency control, and cited technical claims.
-- **Research and fit checks**: Live research for current facts, plus explicit resistance to default stacks and SaaS-dashboard assumptions.
-
-## Installation
+## Install
 
 ```bash
 git clone https://github.com/Kodaxadev/Code-Warden.git
@@ -27,94 +21,104 @@ cd Code-Warden/code-warden
 node install.js
 ```
 
-The auto-installer detects installed AI apps and deploys to all of them.
-Supported targets: **Claude Code**, **Cursor**, **Warp**, **OpenAI Codex**,
-**Windsurf** (flat-file adapter), and **Generic Agents**.
-
 ### Installer commands
 
 | Command | Purpose |
 |---------|---------|
-| `node install.js` | Scan, prompt, install |
+| `node install.js` | Scan, prompt, install to detected apps |
 | `node install.js --all` | Install without prompt |
 | `node install.js --dry-run` | Preview installs, write nothing |
 | `node install.js --list` | Show detected apps and detection method |
-| `node install.js --doctor` | Verify source integrity + installed health per target |
-| `node install.js --target=claude,cursor` | Force specific targets |
+| `node install.js --doctor` | Verify source integrity + per-target install health |
+| `node install.js --target=claude,cursor` | Force specific targets (warns if not detected) |
+| `node install.js --verify-target=claude` | Strict health check — exits nonzero if not installed |
+| `node install.js --hooks=claude` | Install PreToolUse hooks into `~/.claude/settings.json` |
+| `node install.js --uninstall-hooks=claude` | Remove code-warden hook entries from settings |
 
-Each install writes a `.code-warden-install.json` manifest recording version,
-target, format, and timestamp — used by `--doctor` and future uninstall/repair commands.
+Supported targets: **Claude Code**, **Cursor**, **Warp**, **OpenAI Codex**, **Windsurf**, **Generic Agents**.
 
-### Legacy / manual install
+Each install writes a `.code-warden-install.json` manifest (version, target, format, timestamp).
 
-```powershell
-.\install.ps1              # agents (default)
-.\install.ps1 -Target claude
-```
+### npm scripts
 
 ```bash
-bash install.sh            # agents (default)
-bash install.sh claude
+npm run lint            # warden-lint on full project tree
+npm run check-secrets   # verify-secrets on full project tree
+npm run install-auto    # node install.js
+npm run install-dry-run # node install.js --dry-run
+npm run install-list    # node install.js --list
+npm run install-doctor  # node install.js --doctor
+npm run ci              # lint + secrets + doctor
 ```
 
 ## Usage
 
-Load the skill at the start of any coding session. Trigger phrases include:
+Load at the start of any coding session. Trigger phrases:
 
-- `"load protocol"` / `"load code-warden"`
-- `"begin coding"` / `"new session"`
+- `"load code-warden"` / `"load protocol"`
+- `"begin coding"` / `"new session"` / `"governance check"`
 - `"start a new module"` / `"review this before we write"`
-- `"are we following the rules"` / `"governance check"`
 
-The agent will output the **HARD GATE** block immediately and pause until you
-confirm scope. See [`examples/governed-session.md`](examples/governed-session.md)
-for an annotated example of the full flow.
+The session sequence is enforced before any implementation:
+
+1. Architecture State (Re-injection Rule)
+2. Session Scope (Session Scoping Rule)
+3. Reference Files (Blueprint Rule)
+4. **Scope Gate** — goal, non-goals, files in/out, verify commands, rollback
+5. **Plan Gate** — patch order, blast radius class, post-patch checks
+
+See [`examples/governed-session.md`](examples/governed-session.md) for an annotated example.
+
+## Optional Claude Code Hooks
+
+Install hard enforcement that runs at the `PreToolUse` level — before writes happen:
+
+```bash
+# Requires Claude Code target to be installed first
+node install.js --hooks=claude
+```
+
+| Hook | Trigger | Policy |
+|------|---------|--------|
+| `warden-lint-hook.js` | `Write` or `Edit` | Blocks if resulting file exceeds line limit |
+| `warden-secrets-hook.js` | `Write` or `Edit` | Blocks if content contains a hardcoded credential |
+
+Both hooks use exec form (`node /path/to/hook.js`) — no shell differences across platforms.
+
+Thresholds are read from `codewarden.json` in the installed skill directory.
+
+```bash
+node install.js --uninstall-hooks=claude  # remove hook entries from settings.json
+```
+
+Doctor and `--verify-target=claude` validate hook script paths when hooks are registered.
 
 ## Configuration
 
-All thresholds are in [`codewarden.json`](codewarden.json):
+All thresholds in [`codewarden.json`](codewarden.json):
 
 | Setting | Default | What it controls |
 |---------|---------|-----------------|
-| `max_file_length` | 400 | Lines before `warden-lint.js` flags a file |
-| `pre_flight_trigger_lines` | 150 | Lines before a JSON pre-flight manifest is required |
-| `human_checkpoint_files` | 2 | Files touched before `[AWAITING CONFIRMATION]` is required |
-| `exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | Paths skipped by rollback-plan rule |
+| `thresholds.max_file_length` | 400 | Lines before `warden-lint.js` flags a file |
+| `thresholds.pre_flight_trigger_lines` | 150 | Lines before a pre-flight manifest is required |
+| `thresholds.human_checkpoint_files` | 2 | Files touched before `[AWAITING CONFIRMATION]` is required |
+| `safety.exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | Paths excluded from rollback-plan rule |
 
-See [`CONFIGURE.md`](CONFIGURE.md) for tuning details.
-
-## Tools
-
-### Session tools (used during coding sessions)
-
-| Script | Run with | Purpose |
-|--------|----------|---------|
-| `tools/get-context.js` | `npm run get-context` | Finds and prints project architecture docs (`AGENTS.md`, `CLAUDE.md`, `PRD.md`, etc.) |
-| `tools/verify-secrets.js <files>` | `npm run check-secrets -- <files>` | Scans for hardcoded API keys, tokens, and passwords |
-| `tools/warden-lint.js <files>` | `npm run lint -- <files>` | Enforces the file length limit from `codewarden.json` |
-
-### Installer tools (used by install.js)
-
-| Script | Purpose |
-|--------|---------|
-| `tools/auto-targets.js` | Target registry — app IDs, skill directories, and per-platform detection signals |
-| `tools/auto-detect.js` | Detection logic — checks binaries in PATH, config dirs, and app install paths |
-| `tools/auto-windsurf-adapter.js` | Concatenates `SKILL.md` + all references into a single flat `.md` for Windsurf's rules format |
+See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
 
 ## Reference Files
 
-Loaded on demand by the agent when relevant to the task:
-
 | File | Domain |
 |------|--------|
+| `references/planning-gates.md` | Scope Gate and Plan Gate contracts |
 | `references/architecture.md` | Blueprint Rule, Re-injection, State Update |
 | `references/safety.md` | Blast Radius, Patch-First, Zero-Trust, Dependency Freeze |
 | `references/cognition.md` | Think Before Coding, Don't Guess Syntax, Human Checkpoint |
 | `references/cleanup.md` | Tech Debt format, Test Contract, Decision Log |
 | `references/anti-drift.md` | Anchor Check, Session Scoping, Drift Trigger Protocol |
-| `references/operations.md` | Verification evidence, source-control hygiene, dependency control, evidence standards |
-| `references/research-and-fit.md` | Live research gate, stack fit checks, product-shape guardrails |
+| `references/operations.md` | Verification, source-control hygiene, dependency control |
+| `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
 
 ## Author
 
-Justin Davis - MIT License
+Justin Davis — MIT License
