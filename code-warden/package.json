@@ -1,6 +1,6 @@
 {
   "name": "code-warden",
-  "version": "2.8.0",
+  "version": "3.0.0",
   "description": "Production-grade AI development governance skill for Codex, Claude Code, and Cowork.",
   "main": "SKILL.md",
   "scripts": {

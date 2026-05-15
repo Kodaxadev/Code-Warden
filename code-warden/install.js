@@ -13,6 +13,8 @@
  *   node install.js --verify-target=claude       # strict health check for one target; exits nonzero if unknown or not installed
  *   node install.js --verify-target=claude,warp  # check multiple targets
  *   node install.js --target=claude,cursor       # force specific targets (warns if not detected)
+ *   node install.js --hooks=claude               # install PreToolUse hooks into ~/.claude/settings.json
+ *   node install.js --uninstall-hooks=claude     # remove code-warden hook entries from ~/.claude/settings.json
  */
 
 const fs       = require('fs');
@@ -147,8 +149,10 @@ function parseArgs(argv) {
     all:          args.includes('--all'),
     list:         args.includes('--list'),
     doctor:       args.includes('--doctor'),
-    targetFilter: pick('--target='),
-    verifyTarget: pick('--verify-target='),
+    targetFilter:        pick('--target='),
+    verifyTarget:        pick('--verify-target='),
+    hooksTarget:         pick('--hooks='),
+    uninstallHooksTarget: pick('--uninstall-hooks='),
   };
 }
 
@@ -200,6 +204,23 @@ function checkTarget(t, issues) {
       }
     }
     check('    SKILL.md present in install dir', fs.existsSync(skillMdPath));
+
+    // Validate hook entries if registered in ~/.claude/settings.json
+    if (t.id === 'claude') {
+      const sp = path.join(t.skillsDir, '..', 'settings.json');
+      if (fs.existsSync(sp)) {
+        try {
+          const s = JSON.parse(fs.readFileSync(sp, 'utf8'));
+          const cw = (s?.hooks?.PreToolUse || []).flatMap(m => m.hooks || [])
+            .filter(h => String(h.description || '').startsWith('code-warden:'));
+          if (cw.length > 0) {
+            check(`    Hooks registered (${cw.length})`, true);
+            cw.forEach(h => { const p = h.args && h.args[0];
+              check(`    Hook script: ${path.basename(p || '?')}`, !!(p && fs.existsSync(p))); });
+          }
+        } catch { fail('    settings.json parse error'); issues.push('claude: settings.json'); }
+      }
+    }
   }
   console.log('');
 }
@@ -262,13 +283,36 @@ function destPath(target) {
 }
 
 async function main() {
-  const { dryRun, all, list, doctor, targetFilter, verifyTarget } = parseArgs(process.argv);
+  const { dryRun, all, list, doctor, targetFilter, verifyTarget,
+          hooksTarget, uninstallHooksTarget } = parseArgs(process.argv);
 
   log(`Auto-Installer v${VERSION}`);
 
   // --verify-target: strict per-target check — does not need a scan
   if (verifyTarget) {
     runVerifyTarget(verifyTarget);
+    return;
+  }
+
+  // --hooks / --uninstall-hooks: only 'claude' supported in v3.0.0
+  if (hooksTarget || uninstallHooksTarget) {
+    const ids = hooksTarget || uninstallHooksTarget;
+    const bad = ids.filter(id => id !== 'claude');
+    if (bad.length > 0) {
+      console.error(`[CodeWarden] hooks commands support: claude. Unknown: ${bad.join(', ')}`);
+      process.exit(1);
+    }
+    const skillDir = path.join(TARGETS.find(t => t.id === 'claude').skillsDir, SKILL_NAME);
+    if (hooksTarget) {
+      log('Installing hooks for Claude Code...');
+      require('./tools/hooks/install-hooks').installHooks(skillDir);
+      ok('Hook entries written -> ~/.claude/settings.json');
+      log('Restart Claude Code for hooks to take effect.');
+    } else {
+      log('Removing hooks for Claude Code...');
+      require('./tools/hooks/uninstall-hooks').uninstallHooks();
+      log('Restart Claude Code for changes to take effect.');
+    }
     return;
   }
 

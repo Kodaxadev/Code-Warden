@@ -12,9 +12,13 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 2.8.0
+  version: 3.0.0
   category: development-governance
   changelog: |
+    v3.0.0 (2026-05-15): Optional Claude Code hooks package. --hooks=claude installs
+      PreToolUse hooks that block writes violating file-length or zero-trust secrets
+      policy before they happen. --uninstall-hooks=claude removes them. Doctor and
+      verify-target validate hook script paths when hooks are registered.
     v2.8.0 (2026-05-15): Added --verify-target=<id> strict per-target health check.
       Unknown target IDs exit nonzero. Known but not-installed targets exit nonzero.
       Added npm scripts: install-list, install-doctor.
@@ -41,7 +45,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v2.8.0
+# code-warden v3.0.0
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,

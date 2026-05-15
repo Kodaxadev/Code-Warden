@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-15 - Claude hooks live inside the installed skill path (ADR)
+
+- **Decision**: Code-warden Claude hooks (`warden-lint-hook.js`, `warden-secrets-hook.js`) are installed from and referenced at `~/.claude/skills/code-warden/tools/hooks/`. Hook scripts are not copied to a neutral directory (e.g. `~/.claude/hooks/code-warden/`). The absolute path to the skill directory is written into `~/.claude/settings.json` at hook install time.
+- **Alternatives considered**:
+  - Neutral directory (`~/.claude/hooks/code-warden/`). Rejected: requires copying hook scripts to a second location on install, syncing them on update, and maintaining a separate removal path. Creates a split-brain problem with two artifact trees.
+  - Relative path via `${CLAUDE_PROJECT_DIR}`. Rejected: hooks are user-level (global), not project-level. No stable relative root exists at user scope.
+- **Reasoning**: Hooks are part of the code-warden skill distribution. They version with the skill and are updated by the same installer (`node install.js --hooks=claude`). One source of truth, one update path, one health-check target.
+- **Consequence**: If the skill directory is deleted manually, `~/.claude/settings.json` may contain dangling hook entries pointing at missing scripts. `--doctor`, `--verify-target=claude`, and `--uninstall-hooks=claude` all detect and repair this condition. The risk is visible and recoverable.
+- **Files affected**: `tools/hooks/warden-lint-hook.js`, `tools/hooks/warden-secrets-hook.js`, `tools/hooks/install-hooks.js`, `tools/hooks/uninstall-hooks.js`, `install.js`, `DECISIONS.md`
+
+---
+
 ## 2026-05-14 - Research and fit governance
 
 - **Decision**: Added `references/research-and-fit.md` and wired it into the core skill, cognitive routing, drift signals, README files, and governed-session example. The layer forces live research for current/version-specific facts and requires a fit check before defaulting to familiar stacks or product shapes.
