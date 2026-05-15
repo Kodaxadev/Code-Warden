@@ -1,10 +1,6 @@
 # code-warden
 
 <p align="center">
-  <img src="logo/codewarden.png" alt="code-warden logo" width="160" />
-</p>
-
-<p align="center">
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
