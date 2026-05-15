@@ -92,4 +92,4 @@ Thresholds are opinionated defaults tuned for solo developers. See
 
 ## Version
 
-v2.5.0 - See `code-warden/SKILL.md` metadata for changelog.
+v2.6.0 - See `code-warden/SKILL.md` metadata for changelog.
