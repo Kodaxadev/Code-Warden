@@ -205,21 +205,20 @@ function checkTarget(t, issues) {
     }
     check('    SKILL.md present in install dir', fs.existsSync(skillMdPath));
 
-    // Validate hook entries if registered in ~/.claude/settings.json
+    // Validate hook entries if registered in runtime settings
     if (t.id === 'claude') {
       const sp = path.join(t.skillsDir, '..', 'settings.json');
-      if (fs.existsSync(sp)) {
-        try {
-          const s = JSON.parse(fs.readFileSync(sp, 'utf8'));
-          const cw = (s?.hooks?.PreToolUse || []).flatMap(m => m.hooks || [])
-            .filter(h => String(h.description || '').startsWith('code-warden:'));
-          if (cw.length > 0) {
-            check(`    Hooks registered (${cw.length})`, true);
-            cw.forEach(h => { const p = h.args && h.args[0];
-              check(`    Hook script: ${path.basename(p || '?')}`, !!(p && fs.existsSync(p))); });
-          }
-        } catch { fail('    settings.json parse error'); issues.push('claude: settings.json'); }
-      }
+      if (fs.existsSync(sp)) { try {
+        const cw=(JSON.parse(fs.readFileSync(sp,'utf8'))?.hooks?.PreToolUse||[]).flatMap(m=>m.hooks||[]).filter(h=>String(h.description||'').startsWith('code-warden:'));
+        if(cw.length>0){check(`    Hooks registered (${cw.length})`,true);cw.forEach(h=>{const p=h.args&&h.args[0];check(`    Hook script: ${path.basename(p||'?')}`,!!(p&&fs.existsSync(p)));});}
+      } catch { fail('    settings.json parse error'); issues.push('claude: settings.json'); } }
+    }
+    if (t.id === 'codex') {
+      const hp = path.join(t.skillsDir, '..', 'hooks.json');
+      if (fs.existsSync(hp)) { try {
+        const cw=(JSON.parse(fs.readFileSync(hp,'utf8'))?.PreToolUse||[]).filter(e=>String(e.description||'').startsWith('code-warden:'));
+        if(cw.length>0){check(`    Hooks registered (${cw.length})`,true);cw.forEach(e=>{const p=e.args&&e.args[0];check(`    Hook script: ${path.basename(p||'?')}`,!!(p&&fs.existsSync(p)));});}
+      } catch { fail('    hooks.json parse error'); issues.push('codex: hooks.json'); } }
     }
   }
   console.log('');
@@ -294,24 +293,27 @@ async function main() {
     return;
   }
 
-  // --hooks / --uninstall-hooks: only 'claude' supported in v3.0.0
-  if (hooksTarget || uninstallHooksTarget) {
+  if (hooksTarget || uninstallHooksTarget) {  // --hooks / --uninstall-hooks dispatch
+    const HOOK_TARGETS = { claude: 'Claude Code', codex: 'OpenAI Codex' };
     const ids = hooksTarget || uninstallHooksTarget;
-    const bad = ids.filter(id => id !== 'claude');
+    const bad = ids.filter(id => !HOOK_TARGETS[id]);
     if (bad.length > 0) {
-      console.error(`[CodeWarden] hooks commands support: claude. Unknown: ${bad.join(', ')}`);
+      console.error(`[CodeWarden] hooks support: ${Object.keys(HOOK_TARGETS).join(', ')}. Unknown: ${bad.join(', ')}`);
       process.exit(1);
     }
-    const skillDir = path.join(TARGETS.find(t => t.id === 'claude').skillsDir, SKILL_NAME);
-    if (hooksTarget) {
-      log('Installing hooks for Claude Code...');
-      require('./tools/hooks/install-hooks').installHooks(skillDir);
-      ok('Hook entries written -> ~/.claude/settings.json');
-      log('Restart Claude Code for hooks to take effect.');
-    } else {
-      log('Removing hooks for Claude Code...');
-      require('./tools/hooks/uninstall-hooks').uninstallHooks();
-      log('Restart Claude Code for changes to take effect.');
+    for (const id of ids) {
+      const skillDir = path.join(TARGETS.find(t => t.id === id).skillsDir, SKILL_NAME);
+      const mod = require(`./tools/hooks/${id}/${hooksTarget ? 'install' : 'uninstall'}-hooks`);
+      if (hooksTarget) {
+        log(`Installing hooks for ${HOOK_TARGETS[id]}...`);
+        mod.installHooks(skillDir);
+        ok('Hook entries written');
+        log(`Restart ${HOOK_TARGETS[id]} for hooks to take effect.`);
+      } else {
+        log(`Removing hooks for ${HOOK_TARGETS[id]}...`);
+        mod.uninstallHooks();
+        log(`Restart ${HOOK_TARGETS[id]} for changes to take effect.`);
+      }
     }
     return;
   }

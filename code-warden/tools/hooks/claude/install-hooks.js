@@ -60,14 +60,14 @@ function buildEntries(skillDir) {
     {
       type:        'command',
       command:     'node',
-      args:        [path.join(skillDir, 'tools', 'hooks', 'warden-lint-hook.js')],
+      args:        [path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-lint-hook.js')],
       description: 'code-warden: file length gate',
       timeout:     30,
     },
     {
       type:        'command',
       command:     'node',
-      args:        [path.join(skillDir, 'tools', 'hooks', 'warden-secrets-hook.js')],
+      args:        [path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-secrets-hook.js')],
       description: 'code-warden: zero-trust secrets gate',
       timeout:     30,
     },
@@ -82,8 +82,8 @@ function installHooks(skillDir) {
   // Guard: skill must be installed before settings are written
   const required = [
     path.join(skillDir, 'SKILL.md'),
-    path.join(skillDir, 'tools', 'hooks', 'warden-lint-hook.js'),
-    path.join(skillDir, 'tools', 'hooks', 'warden-secrets-hook.js'),
+    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-lint-hook.js'),
+    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-secrets-hook.js'),
   ];
   for (const p of required) {
     if (!fs.existsSync(p)) {

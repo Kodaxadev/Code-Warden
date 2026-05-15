@@ -4,7 +4,7 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.0.0-blue" alt="Version 3.0.0" />
+  <img src="https://img.shields.io/badge/version-3.1.0-blue" alt="Version 3.1.0" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
@@ -66,14 +66,14 @@ If you run long Claude Code, Codex, or Cursor sessions — multi-file refactors,
 | Runtime | Install | Skill Rules | Local Tools | CI | Hard Hooks |
 |---|---:|---:|---:|---:|---:|
 | Claude Code | ✅ | ✅ | ✅ | ✅ | ✅ PreToolUse |
-| OpenAI Codex | ✅ | ✅ | ✅ | ✅ | — |
+| OpenAI Codex | ✅ | ✅ | ✅ | ✅ | ⚡ Partial |
 | Cursor | ✅ | ✅ | ✅ | ✅ | — |
 | Warp | ✅ | ✅ | ✅ | ✅ | — |
 | Windsurf | ✅ flat rules | ✅ adapted | ✅ | ✅ | — |
 | Generic Agents | ✅ | ✅ | ✅ | ✅ | — |
 | GitHub Actions | — | — | ✅ | ✅ | — |
 
-Hard hooks are currently Claude Code-specific. Other runtimes still get skill governance, local verification, install health checks, and CI enforcement.
+Claude Code gets full hard enforcement (blocks `Write`/`Edit` before the file system is touched). Codex gets partial enforcement: `apply_patch` and `Bash` calls are intercepted for secrets and estimated file size — the tool surfaces Codex exposes at `PreToolUse`. CI enforcement closes the remaining gap for both runtimes.
 
 ## Why Not Just Prompt Better?
 
@@ -98,7 +98,7 @@ Code-Warden is portable at the governance, installer, local-tooling, and CI laye
 - A local verification toolkit
 - A cross-runtime installer and health checker
 - A CI-friendly policy gate
-- An optional Claude Code hard-enforcement layer
+- An optional hard-enforcement layer for Claude Code (full) and Codex (partial)
 
 **Code-Warden is not:**
 - A replacement for your coding agent
@@ -114,7 +114,7 @@ You do not need to install everything at once. Each layer adds value independent
 
 1. **CI only** — add `warden-lint` and `verify-secrets` to GitHub Actions. No skill install required.
 2. **Skill governance** — install Code-Warden into your AI runtime. Scope Gates, Plan Gates, and drift signals activate immediately.
-3. **Hard enforcement** — enable Claude Code hooks for pre-write blocking. Requires step 2 first.
+3. **Hard enforcement** — enable hooks for pre-tool-use blocking. Claude Code: full (`Write`/`Edit`). Codex: partial (`apply_patch`/`Bash`). Requires step 2 first.
 
 Start where you have the most immediate pain.
 
@@ -139,6 +139,8 @@ node install.js --doctor                 # verify source + install health
 node install.js --verify-target=claude   # strict per-target check, exits nonzero on failure
 node install.js --hooks=claude           # install Claude Code PreToolUse hooks
 node install.js --uninstall-hooks=claude # remove Claude Code hooks
+node install.js --hooks=codex            # install Codex PreToolUse hooks (partial)
+node install.js --uninstall-hooks=codex  # remove Codex hooks
 ```
 
 ### npm scripts
@@ -165,18 +167,36 @@ Or: `"load code-warden"`, `"new session"`, `"begin coding"`, `"governance check"
   <img src="logo/session-flow.png" alt="Code-Warden Session Start Sequence" width="100%" />
 </p>
 
-## Optional Claude Code Hooks
+## Optional Hard Enforcement (Hooks)
 
 <p align="center">
   <img src="logo/hook-flow.png" alt="Code-Warden Hook Enforcement Flow" width="900" />
 </p>
+
+### Claude Code — Full enforcement
 
 ```bash
 node install.js --hooks=claude           # install (requires Claude target installed first)
 node install.js --uninstall-hooks=claude # remove
 ```
 
-Doctor and `--verify-target=claude` validate hook script paths when hooks are registered.
+Blocks `Write` and `Edit` before the file system is touched — if the resulting file would exceed the line limit or contain a hardcoded credential.
+
+### OpenAI Codex — Partial enforcement
+
+```bash
+node install.js --hooks=codex            # install (requires Codex target installed first)
+node install.js --uninstall-hooks=codex  # remove
+```
+
+| Hook | Trigger | Policy |
+|------|---------|--------|
+| `warden-apply-patch-hook.js` | `apply_patch` | Blocks if added lines contain a credential or estimated result exceeds line limit |
+| `warden-bash-hook.js` | `Bash` | Blocks if command contains a hardcoded credential |
+
+Codex exposes `apply_patch` and `Bash` at `PreToolUse` — not `Write`/`Edit`. These are the available surfaces. CI enforcement closes the remaining gap.
+
+Doctor and `--verify-target=<id>` validate hook script paths when hooks are registered.
 
 ## CI Integration
 
@@ -184,7 +204,7 @@ Doctor and `--verify-target=claude` validate hook script paths when hooks are re
 - name: Install Code-Warden
   run: |
     curl -fsSL -o cw.zip \
-      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.0.0/code-warden-v3.0.0.zip
+      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.1.0/code-warden-v3.1.0.zip
     unzip -q cw.zip -d .code-warden-ci
 
 - name: Lint — file length limits
@@ -214,7 +234,7 @@ Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templ
 
 ## Version
 
-v3.0.0 — See [`code-warden/SKILL.md`](code-warden/SKILL.md) for full changelog.
+v3.1.0 — See [`code-warden/SKILL.md`](code-warden/SKILL.md) for full changelog.
 
 ## Author
 

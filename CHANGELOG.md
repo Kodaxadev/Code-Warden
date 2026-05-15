@@ -5,6 +5,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v3.1.0 — 2026-05-15
+
+**Codex partial hook enforcement.**
+
+- Added `tools/hooks/codex/warden-apply-patch-hook.js` — `PreToolUse` hook that scans added lines in `apply_patch` patches for hardcoded credentials and estimates resulting file size where a target path is extractable
+- Added `tools/hooks/codex/warden-bash-hook.js` — `PreToolUse` hook that scans Bash command strings for hardcoded credential patterns
+- Added `tools/hooks/codex/install-hooks.js` — writes code-warden entries into `~/.codex/hooks.json`; idempotent via description marker; guards against missing skill install
+- Added `tools/hooks/codex/uninstall-hooks.js` — removes code-warden entries; cleans empty arrays/objects; removes file if empty
+- Moved Claude hook files from `tools/hooks/*.js` → `tools/hooks/claude/*.js`
+- `install.js`: `--hooks=` and `--uninstall-hooks=` now support both `claude` and `codex` via dynamic dispatch
+- `install.js`: `--doctor` and `--verify-target=codex` validate hook script paths via `~/.codex/hooks.json`
+- README: compatibility matrix updated (Codex Hard Hooks = Partial); hooks section covers both runtimes with per-surface table
+- ADR recorded in `DECISIONS.md`: partial vs full enforcement rationale; `apply_patch`/`Bash` as the available Codex PreToolUse surfaces
+
+---
+
 ## v3.0.0 — 2026-05-15
 
 **Optional Claude Code hooks package.**

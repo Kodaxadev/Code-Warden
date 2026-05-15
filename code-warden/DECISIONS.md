@@ -17,6 +17,19 @@ Each entry:
 
 ---
 
+## 2026-05-15 - Codex partial hook enforcement — apply_patch and Bash (ADR)
+
+- **Decision**: Ship Codex hook support as "partial hard enforcement" covering `apply_patch` and `Bash` tool calls. Claude hooks are moved to `tools/hooks/claude/`. Codex hooks live at `tools/hooks/codex/`. Each runtime gets its own installer/uninstaller. `install.js` dispatches dynamically via `require('./tools/hooks/${id}/install-hooks')`.
+- **Alternatives considered**:
+  - Full Codex parity with Claude (Write/Edit blocking). Rejected: Codex does not expose Write/Edit as hookable tool calls. `apply_patch` and `Bash` are the only available hook surfaces.
+  - Single hooks/ directory without runtime subdirs. Rejected: creates naming collisions and makes the difference in behavior invisible.
+  - TOML config for Codex. Rejected: `~/.codex/hooks.json` (JSON) avoids a TOML parser dependency and matches the installer pattern already proven with `settings.json`.
+- **Reasoning**: Codex exposes two tool surfaces at PreToolUse — `apply_patch` (for file writes) and `Bash` (for shell execution). Both are realistic vectors for hardcoded secrets. The `apply_patch` hook also estimates resulting file size where a target path is extractable. This covers the most dangerous Codex operations without claiming full parity with the Claude hook surface.
+- **Consequence**: Codex cannot block oversized line counts for net-new files created via `cat >>` or `tee` in Bash. This gap is documented in the README compatibility matrix. CI enforcement (`npm run lint`) closes it at the pipeline level.
+- **Files affected**: `tools/hooks/claude/` (renamed from `tools/hooks/`), `tools/hooks/codex/warden-apply-patch-hook.js`, `tools/hooks/codex/warden-bash-hook.js`, `tools/hooks/codex/install-hooks.js`, `tools/hooks/codex/uninstall-hooks.js`, `install.js`, `package.json`, `SKILL.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-15 - Claude hooks live inside the installed skill path (ADR)
 
 - **Decision**: Code-warden Claude hooks (`warden-lint-hook.js`, `warden-secrets-hook.js`) are installed from and referenced at `~/.claude/skills/code-warden/tools/hooks/`. Hook scripts are not copied to a neutral directory (e.g. `~/.claude/hooks/code-warden/`). The absolute path to the skill directory is written into `~/.claude/settings.json` at hook install time.
