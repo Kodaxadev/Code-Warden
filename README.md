@@ -14,6 +14,28 @@
   <img src="logo/hero-banner.png" alt="Code-Warden — Portable AI Coding Governance Layer" width="100%" />
 </p>
 
+## Who This Is For
+
+**Code-Warden is for when AI coding stops being autocomplete and starts being delegated work.**
+
+If you run short, supervised one-file AI edits, Code-Warden may be overkill.
+
+If you run long Claude Code, Codex, or Cursor sessions — multi-file refactors, parallel projects, CI-gated work, or client and product code — Code-Warden gives your agent declared scope, verifiable checks, and enforceable safety rails.
+
+**Built for developers who:**
+- Run long, high-autonomy AI coding sessions
+- Let agents touch multiple files or whole modules
+- Work across several projects at once
+- Need CI-friendly verification without relying on chat memory
+- Need an audit trail for what the agent was allowed to change
+- Want hard blocking where the runtime supports it
+
+**Probably overkill if:**
+- You only use AI for short snippets
+- You manually review every one-file edit before it lands
+- You do not need CI checks
+- You are comfortable relying entirely on prompt instructions
+
 ## Prevents / Allows
 
 **Prevents**
@@ -53,6 +75,22 @@
 
 Hard hooks are currently Claude Code-specific. Other runtimes still get skill governance, local verification, install health checks, and CI enforcement.
 
+## Why Not Just Prompt Better?
+
+You should prompt well. Code-Warden does not replace that.
+
+**Prompts are policy. Code-Warden adds verification and enforcement.**
+
+| Rule | Prompt-only | Code-Warden |
+|---|---|---|
+| Keep files modular | Agent remembers | `warden-lint` checks files and directories |
+| No hardcoded secrets | Agent remembers | `verify-secrets` scans locally and in CI |
+| Stay inside scope | Agent declares scope | Scope Gate creates an explicit file contract |
+| Verify before done | Agent claims it checked | `npm run ci` produces a deterministic result |
+| Block unsafe writes | Not possible everywhere | Claude `PreToolUse` hooks deny `Write`/`Edit` before execution |
+
+Code-Warden is portable at the governance, installer, local-tooling, and CI layers. Hard pre-write blocking is currently Claude Code-specific because Claude exposes `PreToolUse` hooks. Other runtimes get all other layers.
+
 ## What Code-Warden Is / Is Not
 
 **Code-Warden is:**
@@ -69,6 +107,16 @@ Hard hooks are currently Claude Code-specific. Other runtimes still get skill go
 - A guarantee that unsupported runtimes can block tool calls before execution
 
 > Code-Warden governs the agent inside the workflow you already use.
+
+## Adoption Path
+
+You do not need to install everything at once. Each layer adds value independently.
+
+1. **CI only** — add `warden-lint` and `verify-secrets` to GitHub Actions. No skill install required.
+2. **Skill governance** — install Code-Warden into your AI runtime. Scope Gates, Plan Gates, and drift signals activate immediately.
+3. **Hard enforcement** — enable Claude Code hooks for pre-write blocking. Requires step 2 first.
+
+Start where you have the most immediate pain.
 
 ## Install
 
