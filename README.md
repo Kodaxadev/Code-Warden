@@ -12,27 +12,42 @@ pre-flight anchor checks, session scoping, and re-injection rules.
 
 ## Install
 
-### Codex / shared agents
-
-```powershell
-cd code-warden
-.\install.ps1
+```bash
+git clone https://github.com/Kodaxadev/Code-Warden.git
+cd Code-Warden/code-warden
+node install.js
 ```
+
+The auto-installer scans for installed AI apps and deploys to all of them in one step.
+Supports Claude Code, Cursor, Warp, OpenAI Codex, Windsurf, and generic agent runtimes.
+
+### Installer commands
+
+| Command | Purpose |
+|---------|---------|
+| `node install.js` | Scan, prompt, install to all detected apps |
+| `node install.js --all` | Install without prompt |
+| `node install.js --dry-run` | Preview installs, write nothing |
+| `node install.js --list` | Show detected apps with detection method |
+| `node install.js --doctor` | Verify source integrity and installed health |
+| `node install.js --target=claude,cursor` | Force specific targets (warns if not detected) |
+
+Or via npm:
 
 ```bash
-cd code-warden
-bash install.sh
+npm run install-auto       # install to all detected
+npm run install-dry-run    # preview only
 ```
 
-### Claude Code
+### Legacy / manual install
 
 ```powershell
-cd code-warden
+.\install.ps1              # agents (default)
 .\install.ps1 -Target claude
 ```
 
 ```bash
-cd code-warden
+bash install.sh            # agents (default)
 bash install.sh claude
 ```
 

@@ -21,32 +21,39 @@ When loaded, CodeWarden forces an AI coding agent to behave like a disciplined s
 
 ## Installation
 
-### Linux / macOS
-
 ```bash
-git clone <repo-url>
-cd code-warden
-bash install.sh
+git clone https://github.com/Kodaxadev/Code-Warden.git
+cd Code-Warden/code-warden
+node install.js
 ```
 
-### Windows (PowerShell)
+The auto-installer detects installed AI apps and deploys to all of them.
+Supported targets: **Claude Code**, **Cursor**, **Warp**, **OpenAI Codex**,
+**Windsurf** (flat-file adapter), and **Generic Agents**.
+
+### Installer commands
+
+| Command | Purpose |
+|---------|---------|
+| `node install.js` | Scan, prompt, install |
+| `node install.js --all` | Install without prompt |
+| `node install.js --dry-run` | Preview installs, write nothing |
+| `node install.js --list` | Show detected apps and detection method |
+| `node install.js --doctor` | Verify source integrity + installed health per target |
+| `node install.js --target=claude,cursor` | Force specific targets |
+
+Each install writes a `.code-warden-install.json` manifest recording version,
+target, format, and timestamp — used by `--doctor` and future uninstall/repair commands.
+
+### Legacy / manual install
 
 ```powershell
-git clone <repo-url>
-cd code-warden
-.\install.ps1
-```
-
-By default, both installers copy the skill to `~/.agents/skills/code-warden/`,
-which is the shared Codex agents skill directory.
-
-Install for Claude Code instead:
-
-```powershell
+.\install.ps1              # agents (default)
 .\install.ps1 -Target claude
 ```
 
 ```bash
+bash install.sh            # agents (default)
 bash install.sh claude
 ```
 
@@ -78,11 +85,21 @@ See [`CONFIGURE.md`](CONFIGURE.md) for tuning details.
 
 ## Tools
 
+### Session tools (used during coding sessions)
+
 | Script | Run with | Purpose |
 |--------|----------|---------|
-| `tools/get-context.js` | `npm run get-context` | Finds and prints project context such as `AGENTS.md`, architecture docs, or README files |
+| `tools/get-context.js` | `npm run get-context` | Finds and prints project architecture docs (`AGENTS.md`, `CLAUDE.md`, `PRD.md`, etc.) |
 | `tools/verify-secrets.js <files>` | `npm run check-secrets -- <files>` | Scans for hardcoded API keys, tokens, and passwords |
 | `tools/warden-lint.js <files>` | `npm run lint -- <files>` | Enforces the file length limit from `codewarden.json` |
+
+### Installer tools (used by install.js)
+
+| Script | Purpose |
+|--------|---------|
+| `tools/auto-targets.js` | Target registry — app IDs, skill directories, and per-platform detection signals |
+| `tools/auto-detect.js` | Detection logic — checks binaries in PATH, config dirs, and app install paths |
+| `tools/auto-windsurf-adapter.js` | Concatenates `SKILL.md` + all references into a single flat `.md` for Windsurf's rules format |
 
 ## Reference Files
 
