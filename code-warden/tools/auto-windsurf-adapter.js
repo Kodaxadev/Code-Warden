@@ -5,7 +5,7 @@
  * compatible with Windsurf's rules format (.windsurf/rules/).
  *
  * Concatenation order:
- *   SKILL.md -> architecture -> safety -> cognition -> cleanup
+ *   SKILL.md -> planning-gates -> architecture -> safety -> cognition -> cleanup
  *             -> anti-drift -> operations -> research-and-fit
  */
 
@@ -13,6 +13,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const REFERENCE_ORDER = [
+  'planning-gates',
   'architecture',
   'safety',
   'cognition',

@@ -12,9 +12,12 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 2.7.0
+  version: 2.7.1
   category: development-governance
   changelog: |
+    v2.7.1 (2026-05-15): Added Scope Gate and Plan Gate pre-implementation declaration
+      blocks. Both gates must be confirmed before any code is written. Covers goal,
+      non-goals, files in/out, patch order, blast radius class, and post-patch checks.
     v2.7.0 (2026-05-15): Added GitHub Actions CI template and npm run ci script.
       Code-Warden now enforces file length and zero-trust secrets outside the chat session.
     v2.6.0 (2026-05-15): Added cross-platform auto-installer with app detection,
@@ -35,7 +38,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v2.7.0
+# code-warden v2.7.1
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,
@@ -44,7 +47,15 @@ or architectural changes.
 ## Session Start - HARD GATE
 
 Do not ask implementation questions. Do not gather requirements. Do not proceed
-past this block until all three outputs are produced and confirmed by the user.
+past this block until all outputs are produced and confirmed by the user.
+
+Mandatory sequence — produce in order, each confirmed before the next:
+
+1. **Architecture State** (below)
+2. **Session Scope** (below)
+3. **Reference Files** (below)
+4. **Scope Gate** — see [references/planning-gates.md](references/planning-gates.md)
+5. **Plan Gate** — see [references/planning-gates.md](references/planning-gates.md) (fires after Scope Gate confirmed)
 
 Before responding, execute `node <installed-skill-dir>/tools/get-context.js` if
 you lack architectural context.
@@ -91,6 +102,8 @@ information above.
 
 ## Quick Rules
 
+- **Scope Gate**: Required before every session. Declare goal, non-goals, files in/out, verify commands, rollback plan. See `references/planning-gates.md`.
+- **Plan Gate**: Required before any multi-file or >30-line change. Declare patch order, blast radius class, post-patch checks. See `references/planning-gates.md`.
 - **Max file size**: Enforced by `warden-lint.js` (default 400 lines). Split into modules at the limit.
 - **Editing mode**: Patch/diff first. No full rewrites without blast radius check.
 - **Feedback mode**: Adversarial. Correctness over comfort; push back on weak logic.
@@ -108,6 +121,7 @@ information above.
 
 Load these when relevant to the current task:
 
+- Scope Gate, Plan Gate, blast radius class, patch order -> [references/planning-gates.md](references/planning-gates.md)
 - Architecture decisions, Blueprint Rule, Re-injection -> [references/architecture.md](references/architecture.md)
 - Blast Radius, Patch-First, Zero-Trust, Dependency Freeze -> [references/safety.md](references/safety.md)
 - Think Before Coding, Don't Guess Syntax, Human Checkpoint -> [references/cognition.md](references/cognition.md)
@@ -122,6 +136,9 @@ Stop and re-anchor immediately if any of these appear:
 
 | Signal | Action |
 |--------|--------|
+| Began implementing without a confirmed Scope Gate | Stop, produce Scope Gate, await confirmation |
+| Began implementing without a confirmed Plan Gate | Stop, produce Plan Gate, await confirmation |
+| Touched a file not declared in Scope Gate | Stop, declare scope expansion, await approval |
 | Guessed library syntax without searching docs | Search live docs, correct output |
 | Used stale training data for current facts | Run live research or mark unverified |
 | Chose a default stack/product shape without fit check | Compare alternatives against project constraints |
