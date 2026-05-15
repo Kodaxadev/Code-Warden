@@ -265,16 +265,17 @@ async function main() {
   const { dryRun, all, list, doctor, targetFilter, verifyTarget } = parseArgs(process.argv);
 
   log(`Auto-Installer v${VERSION}`);
-  log('Scanning for installed AI apps...\n');
 
-  // Step 1: Detection — annotate all targets, never mutate detected field here
-  const scanned = scanTargets(TARGETS);
-
-  // --verify-target: strict per-target check — unknown ID or missing install exits 1
+  // --verify-target: strict per-target check — does not need a scan
   if (verifyTarget) {
     runVerifyTarget(verifyTarget);
     return;
   }
+
+  log('Scanning for installed AI apps...\n');
+
+  // Step 1: Detection — annotate all targets, never mutate detected field here
+  const scanned = scanTargets(TARGETS);
 
   // --doctor: verify health of source + all detected installs, then exit
   if (doctor) {
