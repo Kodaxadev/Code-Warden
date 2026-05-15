@@ -39,6 +39,37 @@
   <img src="logo/layers-diagram.png" alt="Code-Warden Four Layers" width="900" />
 </p>
 
+## Compatibility
+
+| Runtime | Install | Skill Rules | Local Tools | CI | Hard Hooks |
+|---|---:|---:|---:|---:|---:|
+| Claude Code | ✅ | ✅ | ✅ | ✅ | ✅ PreToolUse |
+| OpenAI Codex | ✅ | ✅ | ✅ | ✅ | — |
+| Cursor | ✅ | ✅ | ✅ | ✅ | — |
+| Warp | ✅ | ✅ | ✅ | ✅ | — |
+| Windsurf | ✅ flat rules | ✅ adapted | ✅ | ✅ | — |
+| Generic Agents | ✅ | ✅ | ✅ | ✅ | — |
+| GitHub Actions | — | — | ✅ | ✅ | — |
+
+Hard hooks are currently Claude Code-specific. Other runtimes still get skill governance, local verification, install health checks, and CI enforcement.
+
+## What Code-Warden Is / Is Not
+
+**Code-Warden is:**
+- A governance layer for AI coding agents
+- A local verification toolkit
+- A cross-runtime installer and health checker
+- A CI-friendly policy gate
+- An optional Claude Code hard-enforcement layer
+
+**Code-Warden is not:**
+- A replacement for your coding agent
+- A full development methodology like Superpowers
+- A sandbox or security boundary against malicious users
+- A guarantee that unsupported runtimes can block tool calls before execution
+
+> Code-Warden governs the agent inside the workflow you already use.
+
 ## Install
 
 ```bash
