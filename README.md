@@ -4,25 +4,47 @@
   <img src="logo/codewarden.png" alt="code-warden logo" width="160" />
 </p>
 
-[![Code-Warden Quality Gate](https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg)](https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml)
+<p align="center">
+  <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
+    <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
+  </a>
+  <img src="https://img.shields.io/badge/version-3.0.0-blue" alt="Version 3.0.0" />
+  <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
+  <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
+  <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
+</p>
 
-**Code-Warden makes AI coding agents operate under declared scope, verifiable checks, and enforceable safety policy.**
+<p align="center"><strong>Code-Warden makes AI coding agents operate under declared scope, verifiable checks, and enforceable safety policy.</strong></p>
 
-A portable governance and enforcement layer for AI coding agents. It combines skill-level behavioral rules, local verification tools, CI-ready checks, and optional Claude Code hooks to keep AI-assisted development scoped, auditable, modular, and safe — before code is written, while code is being changed, and before work is claimed complete.
+A portable governance and enforcement layer for AI coding agents. Combines skill-level behavioral rules, local verification tools, CI-ready checks, and optional Claude Code hooks — before code is written, while code is being changed, and before work is claimed complete.
+
+## Prevents / Allows
+
+**Prevents**
+- Code before scope is declared
+- Multi-file edits without a patch plan
+- Files touched outside approved scope
+- Oversized monolithic files
+- Hardcoded API keys and credentials
+- Completion claims without verification evidence
+- Stale or broken agent installs
+- Claude Code writes that violate hook policy
+
+**Allows**
+- Normal development work
+- Fast solo-founder iteration
+- Existing agent workflows
+- CI enforcement without chat memory
+- Optional hard blocking only where supported
 
 ## Four Layers
 
-### 1. Skill governance
-Scope Gate and Plan Gate require declaration before any implementation begins. Blast-radius checks, patch-first editing, research gates, adversarial feedback, drift signals, and verification evidence are enforced through every session.
-
-### 2. Local verification tooling
-`warden-lint` and `verify-secrets` scan files and directories, not just individual paths. `get-context` auto-discovers project architecture docs. All tools run locally, offline, with no external dependencies.
-
-### 3. Installer and health system
-Cross-app auto-installer with binary, config-dir, and app-path detection. Manifest-backed atomic installs with `--doctor`, `--verify-target`, and Windsurf flat-file adapter. Supports Claude Code, Cursor, Warp, OpenAI Codex, Windsurf, and generic agent runtimes.
-
-### 4. Optional hard enforcement
-Claude Code `PreToolUse` hooks that block `Write` and `Edit` tool calls before they execute if the resulting file would exceed the line limit or contain a hardcoded credential. Policy blocks happen before the file system is touched.
+| Layer | What it does |
+|-------|-------------|
+| **Skill governance** | Scope Gate, Plan Gate, blast-radius checks, patch-first editing, research gates, drift signals, verification evidence |
+| **Local verification** | `warden-lint`, `verify-secrets`, `get-context` — directory-aware, no external deps |
+| **Installer and health** | Cross-app auto-installer, manifest-backed installs, `--doctor`, `--verify-target`, Windsurf adapter |
+| **Hard enforcement** | Claude Code `PreToolUse` hooks — block oversized writes and hardcoded secrets before the file system is touched |
 
 ## Install
 
@@ -33,15 +55,28 @@ node install.js
 ```
 
 The auto-installer scans for installed AI apps and deploys to all of them in one step.
+Supports Claude Code, Cursor, Warp, OpenAI Codex, Windsurf, and generic agent runtimes.
+
+### Common commands
 
 ```bash
-node install.js --all             # install without prompt
-node install.js --dry-run         # preview, write nothing
-node install.js --list            # show detected apps
-node install.js --doctor          # verify source + installed health
-node install.js --verify-target=claude   # strict per-target check
+node install.js --all                    # install without prompt
+node install.js --dry-run                # preview, write nothing
+node install.js --list                   # show detected apps
+node install.js --doctor                 # verify source + install health
+node install.js --verify-target=claude   # strict per-target check, exits nonzero on failure
 node install.js --hooks=claude           # install Claude Code PreToolUse hooks
 node install.js --uninstall-hooks=claude # remove Claude Code hooks
+```
+
+### npm scripts
+
+```bash
+npm run lint            # scan full project tree for oversized files
+npm run check-secrets   # scan full project tree for hardcoded credentials
+npm run ci              # lint + secrets + doctor
+npm run install-auto    # node install.js
+npm run install-doctor  # node install.js --doctor
 ```
 
 ## Invoke
@@ -50,7 +85,7 @@ node install.js --uninstall-hooks=claude # remove Claude Code hooks
 /code-warden
 ```
 
-Or start a session with: `"load code-warden"`, `"new session"`, `"begin coding"`, `"governance check"`.
+Or: `"load code-warden"`, `"new session"`, `"begin coding"`, `"governance check"`.
 
 ## CI Integration
 
@@ -72,19 +107,13 @@ Add enforcement to any GitHub Actions pipeline:
 
 Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templates/ci/github-actions.yml)
 
-Or run all checks locally:
-
-```bash
-npm run ci   # lint + secrets + doctor
-```
-
 ## File Structure
 
 | File | Purpose |
 |------|---------|
 | `SKILL.md` | Session gates, quick rules, drift signals, reference index |
 | `CONFIGURE.md` | Tunable thresholds and team-size profiles |
-| `DECISIONS.md` | Decision log |
+| `DECISIONS.md` | Architecture decision log |
 | `references/planning-gates.md` | Scope Gate and Plan Gate contracts |
 | `references/architecture.md` | Blueprint Rule, Re-injection, State Update |
 | `references/safety.md` | Blast Radius, Patch-First, Zero-Trust, Dependency Freeze |
@@ -96,7 +125,7 @@ npm run ci   # lint + secrets + doctor
 
 ## Version
 
-v3.0.0 — See `code-warden/SKILL.md` for full changelog.
+v3.0.0 — See [`code-warden/SKILL.md`](code-warden/SKILL.md) for full changelog.
 
 ## Author
 
