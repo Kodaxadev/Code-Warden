@@ -1,11 +1,48 @@
 #!/usr/bin/env node
-const fs = require('fs');
+const fs   = require('fs');
+const path = require('path');
 
-const filePaths = process.argv.slice(2);
-if (filePaths.length === 0) {
-  console.log('Usage: verify-secrets.js <file1> <file2> ...');
-  process.exit(1);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'target']);
+const SKIP_EXTS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.webp',
+  '.zip', '.tar', '.gz', '.7z', '.rar',
+  '.dll', '.exe', '.bin', '.so', '.dylib',
+  '.pdf', '.woff', '.woff2', '.ttf', '.eot',
+  '.mp4', '.mp3', '.wav', '.ogg',
+]);
+
+function collectFiles(dir, results) {
+  for (const entry of fs.readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry)) continue;
+    const full = path.join(dir, entry);
+    const stat = fs.statSync(full);
+    if (stat.isDirectory()) {
+      collectFiles(full, results);
+    } else if (!SKIP_EXTS.has(path.extname(entry).toLowerCase())) {
+      results.push(full);
+    }
+  }
 }
+
+function expandPaths(args) {
+  if (args.length === 0) {
+    console.log('Usage: verify-secrets.js <file|dir> [file|dir] ...');
+    console.log('       node tools/verify-secrets.js .           # scan entire project');
+    process.exit(1);
+  }
+  const files = [];
+  for (const arg of args) {
+    if (!fs.existsSync(arg)) {
+      console.error(`Error: path not found: ${arg}`);
+      continue;
+    }
+    if (fs.statSync(arg).isDirectory()) collectFiles(arg, files);
+    else files.push(arg);
+  }
+  return files;
+}
+
+const filePaths = expandPaths(process.argv.slice(2));
 
 // Named secret patterns. Add new patterns here as a { name, pattern } object.
 const secretPatterns = [
@@ -26,15 +63,6 @@ const secretPatterns = [
 let hasErrors = false;
 
 for (const filePath of filePaths) {
-  if (!fs.existsSync(filePath)) {
-    console.error(`Error: File not found: ${filePath}`);
-    hasErrors = true;
-    continue;
-  }
-
-  const stat = fs.statSync(filePath);
-  if (stat.isDirectory()) continue;
-
   const content = fs.readFileSync(filePath, 'utf8');
   let fileHasSecrets = false;
 
