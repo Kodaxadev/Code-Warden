@@ -14,9 +14,9 @@
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
 </p>
 
-<p align="center"><strong>Code-Warden makes AI coding agents operate under declared scope, verifiable checks, and enforceable safety policy.</strong></p>
-
-A portable governance and enforcement layer for AI coding agents. Combines skill-level behavioral rules, local verification tools, CI-ready checks, and optional Claude Code hooks — before code is written, while code is being changed, and before work is claimed complete.
+<p align="center">
+  <img src="logo/hero-banner.png" alt="Code-Warden — Portable AI Coding Governance Layer" width="100%" />
+</p>
 
 ## Prevents / Allows
 
@@ -39,12 +39,9 @@ A portable governance and enforcement layer for AI coding agents. Combines skill
 
 ## Four Layers
 
-| Layer | What it does |
-|-------|-------------|
-| **Skill governance** | Scope Gate, Plan Gate, blast-radius checks, patch-first editing, research gates, drift signals, verification evidence |
-| **Local verification** | `warden-lint`, `verify-secrets`, `get-context` — directory-aware, no external deps |
-| **Installer and health** | Cross-app auto-installer, manifest-backed installs, `--doctor`, `--verify-target`, Windsurf adapter |
-| **Hard enforcement** | Claude Code `PreToolUse` hooks — block oversized writes and hardcoded secrets before the file system is touched |
+<p align="center">
+  <img src="logo/layers-diagram.png" alt="Code-Warden Four Layers" width="900" />
+</p>
 
 ## Install
 
@@ -87,9 +84,26 @@ npm run install-doctor  # node install.js --doctor
 
 Or: `"load code-warden"`, `"new session"`, `"begin coding"`, `"governance check"`.
 
-## CI Integration
+### Session Start Sequence
 
-Add enforcement to any GitHub Actions pipeline:
+<p align="center">
+  <img src="logo/session-flow.png" alt="Code-Warden Session Start Sequence" width="100%" />
+</p>
+
+## Optional Claude Code Hooks
+
+<p align="center">
+  <img src="logo/hook-flow.png" alt="Code-Warden Hook Enforcement Flow" width="900" />
+</p>
+
+```bash
+node install.js --hooks=claude           # install (requires Claude target installed first)
+node install.js --uninstall-hooks=claude # remove
+```
+
+Doctor and `--verify-target=claude` validate hook script paths when hooks are registered.
+
+## CI Integration
 
 ```yaml
 - name: Install Code-Warden

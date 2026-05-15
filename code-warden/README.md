@@ -6,6 +6,10 @@ Code-Warden is a portable governance layer for AI coding agents. It enforces sco
 
 ## Four Layers
 
+<p align="center">
+  <img src="../logo/layers-diagram.png" alt="Code-Warden Four Layers" width="100%" />
+</p>
+
 | Layer | What it does |
 |-------|-------------|
 | **Skill governance** | Scope Gate, Plan Gate, blast-radius checks, patch-first editing, research gates, drift signals, verification evidence |
@@ -61,6 +65,10 @@ Load at the start of any coding session. Trigger phrases:
 
 The session sequence is enforced before any implementation:
 
+<p align="center">
+  <img src="../logo/session-flow.png" alt="Code-Warden Session Start Sequence" width="100%" />
+</p>
+
 1. Architecture State (Re-injection Rule)
 2. Session Scope (Session Scoping Rule)
 3. Reference Files (Blueprint Rule)
@@ -70,6 +78,10 @@ The session sequence is enforced before any implementation:
 See [`examples/governed-session.md`](examples/governed-session.md) for an annotated example.
 
 ## Optional Claude Code Hooks
+
+<p align="center">
+  <img src="../logo/hook-flow.png" alt="Code-Warden Hook Enforcement Flow" width="100%" />
+</p>
 
 Install hard enforcement that runs at the `PreToolUse` level — before writes happen:
 
