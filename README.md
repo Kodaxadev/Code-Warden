@@ -4,12 +4,15 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.3.0-blue" alt="Version 3.3.0" />
+  <img src="https://img.shields.io/badge/version-3.3.1-blue" alt="Version 3.3.1" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
   <a href="https://www.npmjs.com/package/code-warden">
     <img src="https://img.shields.io/npm/v/code-warden" alt="npm" />
+  </a>
+  <a href="https://socket.dev/npm/package/code-warden">
+    <img src="https://socket.dev/api/badge/npm/package/code-warden" alt="Socket Security" />
   </a>
 </p>
 
