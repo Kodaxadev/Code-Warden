@@ -17,37 +17,12 @@
 
 const fs   = require('fs');
 const path = require('path');
+const { scanForSecrets }          = require('../../lib/secret-patterns');
+const { countLines }              = require('../../lib/line-count');
+const { loadConfig }              = require('../../lib/config');
 
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
+const { maxFileLength: maxLines } = loadConfig();
 
-const CONFIG_PATH = path.join(__dirname, '..', '..', '..', 'codewarden.json');
-let maxLines = 400;
-try {
-  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  maxLines = cfg?.thresholds?.max_file_length ?? cfg?.max_file_length ?? maxLines;
-} catch { /* use default */ }
-
-// ---------------------------------------------------------------------------
-// Secret patterns (same set as warden-secrets-hook.js)
-// ---------------------------------------------------------------------------
-
-const SECRET_PATTERNS = [
-  { name: 'OpenAI key',       re: /sk-[A-Za-z0-9]{32,}/ },
-  { name: 'GitHub token',     re: /gh[posx]_[A-Za-z0-9]{36}/ },
-  { name: 'AWS access key',   re: /AKIA[0-9A-Z]{16}/ },
-  { name: 'Stripe live key',  re: /sk_live_[A-Za-z0-9]{24,}/ },
-  { name: 'Stripe test key',  re: /sk_test_[A-Za-z0-9]{24,}/ },
-  { name: 'Slack token',      re: /xox[baprs]-[A-Za-z0-9\-]+/ },
-  { name: 'SendGrid key',     re: /SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}/ },
-  { name: 'Twilio SID',       re: /AC[a-f0-9]{32}/ },
-  { name: 'Bearer token',     re: /bearer\s+[A-Za-z0-9\-_]{20,}/i },
-  { name: 'Private key',      re: /-----BEGIN (RSA |EC )?PRIVATE KEY-----/ },
-  { name: 'DB URL',           re: /(postgres|mysql|mongodb):\/\/[^:]+:[^@]+@/ },
-  { name: 'Generic API key',  re: /(?:api[_-]?key|apikey)\s*[:=]\s*['"]?[A-Za-z0-9\-_]{16,}/i },
-  { name: 'Generic password', re: /(?:password|passwd|secret)\s*[:=]\s*['"]?[^\s'"]{8,}/i },
-];
 
 function deny(reason) {
   process.stdout.write(JSON.stringify({ deny: true, message: `[CodeWarden] ${reason}` }) + '\n');
@@ -91,7 +66,7 @@ function estimateResultLines(patch, targetPath) {
   let baseLines = 0;
   if (targetPath && fs.existsSync(targetPath)) {
     try {
-      baseLines = fs.readFileSync(targetPath, 'utf8').split('\n').length;
+      baseLines = countLines(fs.readFileSync(targetPath, 'utf8'));
     } catch { return null; }
   } else if (!targetPath) {
     return null;
@@ -124,9 +99,8 @@ process.stdin.on('end', () => {
   // --- Secrets check on added lines ---
   const added = extractAddedLines(patch);
   const addedText = added.join('\n');
-  for (const { name, re } of SECRET_PATTERNS) {
-    if (re.test(addedText)) deny(`Blocked apply_patch — hardcoded credential detected (${name}). Remove before patching.`);
-  }
+  const hit = scanForSecrets(addedText);
+  if (hit) deny(`Blocked apply_patch — hardcoded credential detected (${hit.label}). Remove before patching.`);
 
   // --- File length check ---
   const targetPath = extractTargetPath(patch);

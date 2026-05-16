@@ -5,6 +5,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v3.1.1 — 2026-05-15
+
+**Stabilization — behavioral tests, shared policy modules, line-count fix.**
+
+- Added `tools/tests/run-tests.js` — 8 behavioral tests (Node built-in `node:test`, zero deps) proving scanners and hooks exit with the correct codes against clean, oversized, and secret fixtures
+- Added `tools/tests/fixtures/clean.js` — committed clean fixture
+- Added `tools/lib/line-count.js` — trailing-newline-safe line counter shared across all callers; fixes off-by-one where a file at exactly the limit was incorrectly flagged
+- Added `tools/lib/secret-patterns.js` — canonical unified secret-pattern set with `scanForSecrets()`; fixes pattern drift where GitHub token regex differed between Claude hooks (`gh[pousr]_`) and Codex hooks (`gh[posx]_`)
+- Added `tools/lib/file-collection.js` — shared `collectFiles`/`expandPaths`; removes duplicated traversal code from CLI tools
+- Added `tools/lib/config.js` — shared `loadConfig()`; removes three independent `codewarden.json` parsers
+- `tools/warden-lint.js` reduced 78 → 27 lines; `tools/verify-secrets.js` reduced 66 → 26 lines
+- All hook consumers patched to import from shared lib modules
+- `npm run test` added; `npm run ci` now includes test step
+- README wording: governance rule = "zero-trust secrets policy"; implementation = "hardcoded credential scanner"
+
+---
+
 ## v3.1.0 — 2026-05-15
 
 **Codex partial hook enforcement.**

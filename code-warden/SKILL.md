@@ -12,9 +12,14 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 3.1.0
+  version: 3.1.1
   category: development-governance
   changelog: |
+    v3.1.1 (2026-05-15): Stabilization. Behavioral tests (8 scanner/hook pass/fail
+      cases via node:test). Shared policy modules: lib/line-count.js, lib/secret-patterns.js,
+      lib/file-collection.js, lib/config.js. Line-count off-by-one fixed (trailing newline).
+      Secret-pattern drift fixed (GitHub token gh[posx]_ → gh[pousr]_ unified across all consumers).
+      README wording: zero-trust secrets policy (governance) vs hardcoded credential scanner (impl).
     v3.1.0 (2026-05-15): Codex partial hook enforcement. --hooks=codex installs
       PreToolUse hooks for apply_patch (secrets + estimated size) and Bash (secrets).
       Hooks live in tools/hooks/codex/. Claude hooks moved to tools/hooks/claude/.
@@ -49,7 +54,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v3.1.0
+# code-warden v3.1.1
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,

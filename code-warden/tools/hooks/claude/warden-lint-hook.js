@@ -13,19 +13,14 @@
 
 const fs   = require('fs');
 const path = require('path');
-const os   = require('os');
+const { countLines } = require('../../lib/line-count');
+const { loadConfig } = require('../../lib/config');
 
 // ---------------------------------------------------------------------------
-// Config — read from installed skill's codewarden.json, fall back to default
+// Config — loaded via shared module; falls back to 400 if missing
 // ---------------------------------------------------------------------------
 
-const CONFIG_PATH = path.join(os.homedir(), '.claude', 'skills', 'code-warden', 'codewarden.json');
-let MAX_LINES = 400;
-try {
-  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  const configured = cfg?.thresholds?.max_file_length ?? cfg?.max_file_length;
-  if (typeof configured === 'number') MAX_LINES = configured;
-} catch {}
+const { maxFileLength: MAX_LINES } = loadConfig();
 
 // ---------------------------------------------------------------------------
 // Skip list — file types where line counting is meaningless
@@ -84,7 +79,7 @@ async function main() {
 
   if (tool_name === 'Write') {
     if (shouldSkip(file_path)) allow();
-    const lines = (content || '').split('\n').length;
+    const lines = countLines(content || '');
     if (lines > MAX_LINES) {
       deny(`[CodeWarden] File length gate: ${path.basename(file_path)} would be ${lines} lines (limit ${MAX_LINES}). Split into modules before writing.`);
     }
@@ -98,7 +93,7 @@ async function main() {
     const patched  = replace_all
       ? current.split(old_string || '').join(new_string || '')
       : current.replace(old_string || '', new_string || '');
-    const lines = patched.split('\n').length;
+    const lines = countLines(patched);
     if (lines > MAX_LINES) {
       deny(`[CodeWarden] File length gate: ${path.basename(file_path)} would be ${lines} lines after edit (limit ${MAX_LINES}). Split into modules before editing.`);
     }

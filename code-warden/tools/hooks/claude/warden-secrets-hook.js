@@ -14,33 +14,7 @@
 'use strict';
 
 const path = require('path');
-
-// ---------------------------------------------------------------------------
-// Secret patterns — same set as verify-secrets.js CLI tool
-// ---------------------------------------------------------------------------
-
-const PATTERNS = [
-  { label: 'AWS access key',           re: /AKIA[0-9A-Z]{16}/i },
-  { label: 'OpenAI key',               re: /sk-[A-Za-z0-9]{32,}/i },
-  { label: 'GitHub token',             re: /gh[pousr]_[A-Za-z0-9]{36,}/i },
-  { label: 'Stripe secret key',        re: /sk_(live|test)_[A-Za-z0-9]{24,}/i },
-  { label: 'Slack token',              re: /xox[baprs]-[A-Za-z0-9\-]{10,}/i },
-  { label: 'SendGrid key',             re: /SG\.[A-Za-z0-9_\-.]{20,}/i },
-  { label: 'Twilio SID',               re: /AC[a-f0-9]{32}/i },
-  { label: 'generic API key',          re: /api[_-]?key\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}/i },
-  { label: 'generic secret key',       re: /secret[_-]?key\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}/i },
-  { label: 'password assignment',      re: /password\s*[:=]\s*['"][^'"]{8,}['"]/i },
-  { label: 'bearer token',             re: /bearer\s+[A-Za-z0-9\-._~+\/]{20,}/i },
-  { label: 'private key header',       re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
-  { label: 'database URL with creds',  re: /[a-z][a-z0-9+\-.]*:\/\/[^:]+:[^@]+@[^/]+\//i },
-];
-
-function scanContent(content) {
-  for (const { label, re } of PATTERNS) {
-    if (re.test(content)) return label;
-  }
-  return null;
-}
+const { scanForSecrets } = require('../../lib/secret-patterns');
 
 // ---------------------------------------------------------------------------
 // Response helpers
@@ -76,19 +50,19 @@ async function main() {
   const { tool_name, tool_input = {} } = payload;
 
   if (tool_name === 'Write') {
-    const hit = scanContent(tool_input.content || '');
+    const hit = scanForSecrets(tool_input.content || '');
     if (hit) {
       const file = path.basename(tool_input.file_path || 'file');
-      deny(`[CodeWarden] Zero-trust gate: ${hit} detected in ${file}. Use environment variables — no hardcoded credentials.`);
+      deny(`[CodeWarden] Hardcoded credential scanner: ${hit.label} detected in ${file}. Use environment variables — no hardcoded credentials.`);
     }
     allow();
   }
 
   if (tool_name === 'Edit') {
-    const hit = scanContent(tool_input.new_string || '');
+    const hit = scanForSecrets(tool_input.new_string || '');
     if (hit) {
       const file = path.basename(tool_input.file_path || 'file');
-      deny(`[CodeWarden] Zero-trust gate: ${hit} detected in replacement for ${file}. Use environment variables — no hardcoded credentials.`);
+      deny(`[CodeWarden] Hardcoded credential scanner: ${hit.label} detected in replacement for ${file}. Use environment variables — no hardcoded credentials.`);
     }
     allow();
   }

@@ -2,7 +2,7 @@
 
 > Portable AI Coding Governance Layer
 
-Code-Warden is a portable governance layer for AI coding agents. It enforces scoped planning, patch discipline, file-size limits, zero-trust secrets, verification evidence, install health, and optional Claude Code pre-tool-use blocking.
+Code-Warden is a portable governance layer for AI coding agents. It enforces scoped planning, patch discipline, file-size limits, the zero-trust secrets policy, verification evidence, install health, and optional Claude Code pre-tool-use blocking.
 
 ## Four Layers
 
@@ -52,7 +52,8 @@ npm run install-auto    # node install.js
 npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
-npm run ci              # lint + secrets + doctor
+npm run test            # behavioral tests (8 scanner/hook pass/fail cases)
+npm run ci              # lint + secrets + test + doctor
 ```
 
 ## Usage
@@ -93,7 +94,7 @@ node install.js --hooks=claude
 | Hook | Trigger | Policy |
 |------|---------|--------|
 | `warden-lint-hook.js` | `Write` or `Edit` | Blocks if resulting file exceeds line limit |
-| `warden-secrets-hook.js` | `Write` or `Edit` | Blocks if content contains a hardcoded credential |
+| `warden-secrets-hook.js` | `Write` or `Edit` | Hardcoded credential scanner — blocks if content matches any secret pattern |
 
 Both hooks use exec form (`node /path/to/hook.js`) — no shell differences across platforms.
 
