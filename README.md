@@ -4,7 +4,7 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.1.1-blue" alt="Version 3.1.1" />
+  <img src="https://img.shields.io/badge/version-3.2.0-blue" alt="Version 3.2.0" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
@@ -148,7 +148,9 @@ node install.js --uninstall-hooks=codex  # remove Codex hooks
 ```bash
 npm run lint            # scan full project tree for oversized files
 npm run check-secrets   # scan full project tree for hardcoded credentials
-npm run ci              # lint + secrets + doctor
+npm run report          # governance report — writes .code-warden-report.json
+npm run report:md       # governance report as Markdown (pipe to PR summary)
+npm run ci              # lint + secrets + test + doctor
 npm run install-auto    # node install.js
 npm run install-doctor  # node install.js --doctor
 ```
@@ -198,20 +200,40 @@ Codex exposes `apply_patch` and `Bash` at `PreToolUse` — not `Write`/`Edit`. T
 
 Doctor and `--verify-target=<id>` validate hook script paths when hooks are registered.
 
+## Governance Evidence
+
+Code-Warden produces a machine-readable governance report — verifiable evidence that checks ran and passed:
+
+```bash
+node tools/governance-report.js .              # writes .code-warden-report.json
+node tools/governance-report.js . --format=md  # Markdown table for PR summaries
+```
+
+The report covers file length, hardcoded credentials, behavioral tests, source integrity, and runtime hook status in a single pass. In CI, it pipes directly into `$GITHUB_STEP_SUMMARY` so every PR shows what was checked.
+
 ## CI Integration
 
 ```yaml
 - name: Install Code-Warden
   run: |
     curl -fsSL -o cw.zip \
-      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.1.0/code-warden-v3.1.0.zip
+      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.2.0/code-warden-v3.2.0.zip
     unzip -q cw.zip -d .code-warden-ci
 
-- name: Lint — file length limits
-  run: node .code-warden-ci/tools/warden-lint.js .
+- name: Governance report
+  run: node .code-warden-ci/tools/governance-report.js .
 
-- name: Secrets — zero-trust scan
-  run: node .code-warden-ci/tools/verify-secrets.js .
+- name: Publish governance summary
+  if: always()
+  run: node .code-warden-ci/tools/governance-report.js . --format=md >> $GITHUB_STEP_SUMMARY
+
+- name: Upload governance artifact
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: code-warden-report
+    path: .code-warden-report.json
+    retention-days: 90
 ```
 
 Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templates/ci/github-actions.yml)
@@ -234,7 +256,7 @@ Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templ
 
 ## Version
 
-v3.1.0 — See [`code-warden/SKILL.md`](code-warden/SKILL.md) for full changelog.
+v3.2.0 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
 
 ## Author
 

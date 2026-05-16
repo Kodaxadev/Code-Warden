@@ -2,7 +2,10 @@
 
 > Portable AI Coding Governance Layer
 
-Code-Warden is a portable governance layer for AI coding agents. It enforces scoped planning, patch discipline, file-size limits, the zero-trust secrets policy, verification evidence, install health, and optional Claude Code pre-tool-use blocking.
+Code-Warden provides verifiable governance for AI-assisted development.
+It does not just ask agents to follow rules — it adds Scope Gates, Plan Gates,
+local checks, CI enforcement, runtime hooks where supported, and governance
+artifacts that show what was checked before code was accepted.
 
 ## Four Layers
 
@@ -16,6 +19,43 @@ Code-Warden is a portable governance layer for AI coding agents. It enforces sco
 | **Local verification** | `warden-lint`, `verify-secrets`, `get-context` — directory-aware, no external deps |
 | **Installer and health** | Cross-app auto-installer, manifest-backed installs, `--doctor`, `--verify-target`, Windsurf adapter |
 | **Hard enforcement** | Claude Code `PreToolUse` hooks — block oversized writes and hardcoded secrets before the file system is touched |
+
+## Governance Evidence
+
+Generate a machine-readable governance report that can be stored in CI, attached to PRs, or used as audit evidence:
+
+```bash
+node tools/governance-report.js .                   # write .code-warden-report.json + summary
+node tools/governance-report.js . --format=json      # JSON to stdout
+node tools/governance-report.js . --format=md        # Markdown to stdout
+```
+
+The report runs all checks in a single pass (file length, secrets, behavioral tests, source integrity) and produces a structured artifact:
+
+```json
+{
+  "tool": "code-warden",
+  "version": "3.2.0",
+  "checks": {
+    "fileLength":      { "status": "pass", "filesScanned": 34, "violations": 0 },
+    "secrets":         { "status": "pass", "filesScanned": 34, "violations": 0 },
+    "behavioralTests": { "status": "pass", "tests": 8, "failures": 0 },
+    "installHealth":   { "status": "pass" }
+  },
+  "result": "pass"
+}
+```
+
+In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-visible evidence:
+
+| Check | Result | Details |
+|-------|--------|---------|
+| File length | PASS | 34 files scanned, 0 violations |
+| Hardcoded credentials | PASS | 34 files scanned, 0 violations |
+| Behavioral tests | PASS | 8 tests, 0 failures |
+| Install health | PASS | All source files present |
+
+See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
 
 ## Install
 
@@ -48,6 +88,9 @@ Each install writes a `.code-warden-install.json` manifest (version, target, for
 ```bash
 npm run lint            # warden-lint on full project tree
 npm run check-secrets   # verify-secrets on full project tree
+npm run report          # governance report, writes .code-warden-report.json
+npm run report:json     # governance report as JSON to stdout
+npm run report:md       # governance report as Markdown to stdout
 npm run install-auto    # node install.js
 npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list

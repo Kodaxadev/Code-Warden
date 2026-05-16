@@ -5,6 +5,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v3.2.0 — 2026-05-16
+
+**Governance Evidence Artifact.**
+
+- Added `tools/governance-report.js` — single-pass governance report generator that runs file length, secrets, behavioral tests, source integrity, and runtime hook checks, producing a structured JSON artifact (`.code-warden-report.json`) and optional Markdown output
+- Three output modes: default (writes JSON artifact + prints summary), `--format=json` (JSON to stdout), `--format=md` (Markdown table to stdout for `$GITHUB_STEP_SUMMARY`)
+- Report includes git metadata (branch, commit), check results with violation details, and runtime hook registration status (Claude Code, Codex)
+- Exit code reflects overall result: `0` = all checks pass, `1` = one or more failures
+- Updated `templates/ci/github-actions.yml` — replaces individual lint/secrets steps with governance report, adds `$GITHUB_STEP_SUMMARY` Markdown publishing, adds artifact upload with 90-day retention
+- Added npm scripts: `report`, `report:json`, `report:md`
+- Updated README with "Governance Evidence" section and new positioning
+- New positioning: "Verifiable governance for AI-assisted development — checks, hooks, and evidence that agents stayed within policy"
+
+---
+
 ## v3.1.1 — 2026-05-15
 
 **Stabilization — behavioral tests, shared policy modules, line-count fix.**
