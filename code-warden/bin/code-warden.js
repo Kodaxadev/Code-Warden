@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+'use strict';
+
+const { spawnSync } = require('child_process');
+const path          = require('path');
+
+const ROOT = path.join(__dirname, '..');
+
+const COMMANDS = {
+  init:    { desc: 'Install Code-Warden to detected AI runtimes', run: ['install.js', '--all'] },
+  doctor:  { desc: 'Verify source integrity and install health',  run: ['install.js', '--doctor'] },
+  report:  { desc: 'Generate governance report (.code-warden-report.json)', run: ['tools/governance-report.js', '.'] },
+  list:    { desc: 'Show detected AI runtimes',                   run: ['install.js', '--list'] },
+};
+
+const HOOK_TARGETS = ['claude', 'codex'];
+
+function usage() {
+  console.log('Usage: code-warden <command> [options]\n');
+  console.log('Commands:');
+  for (const [name, { desc }] of Object.entries(COMMANDS)) {
+    console.log(`  ${name.padEnd(22)} ${desc}`);
+  }
+  console.log(`  ${'hooks <target>'.padEnd(22)} Install PreToolUse hooks (${HOOK_TARGETS.join(', ')})`);
+  console.log(`  ${'uninstall-hooks <target>'.padEnd(22)} Remove PreToolUse hooks`);
+  console.log(`\nExamples:`);
+  console.log(`  npx code-warden init`);
+  console.log(`  npx code-warden report`);
+  console.log(`  npx code-warden report --format=md`);
+  console.log(`  npx code-warden hooks claude`);
+}
+
+function run(scriptPath, args) {
+  const result = spawnSync(process.execPath, [path.join(ROOT, scriptPath), ...args], {
+    stdio: 'inherit',
+    cwd: process.cwd(),
+  });
+  process.exit(result.status ?? 1);
+}
+
+const args = process.argv.slice(2);
+const command = args[0];
+const rest = args.slice(1);
+
+if (!command || command === '--help' || command === '-h') {
+  usage();
+  process.exit(0);
+}
+
+if (command === '--version' || command === '-v') {
+  const pkg = require(path.join(ROOT, 'package.json'));
+  console.log(pkg.version);
+  process.exit(0);
+}
+
+if (COMMANDS[command]) {
+  const entry = COMMANDS[command];
+  const scriptArgs = [...entry.run.slice(1), ...rest];
+  run(entry.run[0], scriptArgs);
+}
+
+if (command === 'hooks') {
+  const target = rest[0];
+  if (!target || !HOOK_TARGETS.includes(target)) {
+    console.error(`Usage: code-warden hooks <${HOOK_TARGETS.join('|')}>`);
+    process.exit(1);
+  }
+  run('install.js', [`--hooks=${target}`]);
+}
+
+if (command === 'uninstall-hooks') {
+  const target = rest[0];
+  if (!target || !HOOK_TARGETS.includes(target)) {
+    console.error(`Usage: code-warden uninstall-hooks <${HOOK_TARGETS.join('|')}>`);
+    process.exit(1);
+  }
+  run('install.js', [`--uninstall-hooks=${target}`]);
+}
+
+console.error(`Unknown command: ${command}\n`);
+usage();
+process.exit(1);

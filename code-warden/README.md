@@ -60,12 +60,31 @@ See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the
 ## Install
 
 ```bash
-git clone https://github.com/Kodaxadev/Code-Warden.git
-cd Code-Warden/code-warden
-node install.js
+npx code-warden init
 ```
 
-### Installer commands
+Or install globally:
+
+```bash
+npm install -g code-warden
+code-warden init
+```
+
+### CLI commands
+
+| Command | Purpose |
+|---------|---------|
+| `code-warden init` | Install to all detected AI runtimes |
+| `code-warden report` | Generate governance report |
+| `code-warden report --format=md` | Markdown output for PR summaries |
+| `code-warden doctor` | Verify source integrity + install health |
+| `code-warden list` | Show detected runtimes |
+| `code-warden hooks claude` | Install Claude Code PreToolUse hooks |
+| `code-warden hooks codex` | Install Codex PreToolUse hooks (partial) |
+| `code-warden uninstall-hooks claude` | Remove Claude Code hooks |
+| `code-warden uninstall-hooks codex` | Remove Codex hooks |
+
+### Direct installer commands
 
 | Command | Purpose |
 |---------|---------|

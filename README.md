@@ -4,7 +4,7 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.2.0-blue" alt="Version 3.2.0" />
+  <img src="https://img.shields.io/badge/version-3.3.0-blue" alt="Version 3.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
@@ -121,38 +121,31 @@ Start where you have the most immediate pain.
 ## Install
 
 ```bash
-git clone https://github.com/Kodaxadev/Code-Warden.git
-cd Code-Warden/code-warden
-node install.js
+npx code-warden init
 ```
 
-The auto-installer scans for installed AI apps and deploys to all of them in one step.
+Or install globally:
+
+```bash
+npm install -g code-warden
+code-warden init
+```
+
+The installer scans for AI runtimes and deploys to all of them in one step.
 Supports Claude Code, Cursor, Warp, OpenAI Codex, Windsurf, and generic agent runtimes.
 
-### Common commands
+### CLI commands
 
 ```bash
-node install.js --all                    # install without prompt
-node install.js --dry-run                # preview, write nothing
-node install.js --list                   # show detected apps
-node install.js --doctor                 # verify source + install health
-node install.js --verify-target=claude   # strict per-target check, exits nonzero on failure
-node install.js --hooks=claude           # install Claude Code PreToolUse hooks
-node install.js --uninstall-hooks=claude # remove Claude Code hooks
-node install.js --hooks=codex            # install Codex PreToolUse hooks (partial)
-node install.js --uninstall-hooks=codex  # remove Codex hooks
-```
-
-### npm scripts
-
-```bash
-npm run lint            # scan full project tree for oversized files
-npm run check-secrets   # scan full project tree for hardcoded credentials
-npm run report          # governance report — writes .code-warden-report.json
-npm run report:md       # governance report as Markdown (pipe to PR summary)
-npm run ci              # lint + secrets + test + doctor
-npm run install-auto    # node install.js
-npm run install-doctor  # node install.js --doctor
+code-warden init              # install to detected AI runtimes
+code-warden report            # generate governance report
+code-warden report --format=md # Markdown output (pipe to PR summary)
+code-warden doctor            # verify source + install health
+code-warden list              # show detected runtimes
+code-warden hooks claude      # install Claude Code PreToolUse hooks
+code-warden hooks codex       # install Codex PreToolUse hooks (partial)
+code-warden uninstall-hooks claude
+code-warden uninstall-hooks codex
 ```
 
 ## Invoke
@@ -256,7 +249,7 @@ Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templ
 
 ## Version
 
-v3.2.0 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
+v3.3.0 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
 
 ## Author
 
