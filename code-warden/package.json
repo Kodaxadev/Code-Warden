@@ -1,8 +1,26 @@
 {
   "name": "code-warden",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "Verifiable governance for AI-assisted development — checks, hooks, and evidence.",
   "main": "SKILL.md",
+  "bin": {
+    "code-warden": "bin/code-warden.js"
+  },
+  "files": [
+    "bin/",
+    "tools/",
+    "references/",
+    "templates/",
+    "examples/",
+    "SKILL.md",
+    "CONFIGURE.md",
+    "DECISIONS.md",
+    "README.md",
+    "codewarden.json",
+    "install.js",
+    "install.ps1",
+    "install.sh"
+  ],
   "scripts": {
     "lint": "node tools/warden-lint.js .",
     "check-secrets": "node tools/verify-secrets.js .",
@@ -17,6 +35,28 @@
     "test": "node tools/tests/run-tests.js",
     "ci": "npm run lint && npm run check-secrets && npm run test && node install.js --doctor"
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai",
+    "governance",
+    "claude",
+    "codex",
+    "cursor",
+    "windsurf",
+    "code-review",
+    "linter",
+    "secrets",
+    "ci",
+    "hooks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kodaxadev/Code-Warden.git"
+  },
+  "homepage": "https://github.com/Kodaxadev/Code-Warden",
+  "bugs": "https://github.com/Kodaxadev/Code-Warden/issues",
   "author": "Justin Davis",
   "license": "MIT"
 }

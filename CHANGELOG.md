@@ -5,6 +5,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v3.3.0 — 2026-05-16
+
+**npm package + CLI quickstart.**
+
+- Published to npm as `code-warden` — install with `npx code-warden init`
+- Added `bin/code-warden.js` — CLI wrapper dispatching to existing tools: `init`, `report`, `doctor`, `list`, `hooks`, `uninstall-hooks`
+- Added `"bin"` field to `package.json` for global/npx invocation
+- Added `"files"` field to control tarball contents (41 files, 39 kB, zero runtime deps)
+- Added `"engines": { "node": ">=18" }`
+- Added `"keywords"`, `"repository"`, `"homepage"`, `"bugs"` metadata
+- Updated README with `npx code-warden init` as primary install path and CLI command table
+
+---
+
 ## v3.2.0 — 2026-05-16
 
 **Governance Evidence Artifact.**
