@@ -8,11 +8,33 @@
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
+  <a href="https://www.npmjs.com/package/code-warden">
+    <img src="https://img.shields.io/npm/v/code-warden" alt="npm" />
+  </a>
 </p>
 
 <p align="center">
   <img src="logo/hero-banner.png" alt="Code-Warden — Portable AI Coding Governance Layer" width="100%" />
 </p>
+
+## Quickstart
+
+```bash
+npx code-warden init
+```
+
+Generate a governance report:
+
+```bash
+npx code-warden report
+```
+
+Enable hard hooks where supported:
+
+```bash
+npx code-warden hooks claude
+npx code-warden hooks codex
+```
 
 ## Who This Is For
 

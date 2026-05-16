@@ -194,6 +194,12 @@ See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
 | `references/operations.md` | Verification, source-control hygiene, dependency control |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
 
+## Note for contributors
+
+> If testing `npx code-warden` from inside the Code-Warden source checkout,
+> npm may prefer the local package context. Test from a separate directory for
+> the same behavior users will see.
+
 ## Author
 
 Justin Davis — MIT License

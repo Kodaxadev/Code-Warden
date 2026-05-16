@@ -30,10 +30,13 @@ const SKIP_EXTS = new Set([
  * @param {string[]} results - accumulator (mutated)
  */
 function collectFiles(dir, results) {
-  for (const entry of fs.readdirSync(dir)) {
+  let entries;
+  try { entries = fs.readdirSync(dir); } catch { return; }
+  for (const entry of entries) {
     if (SKIP_DIRS.has(entry)) continue;
     const full = path.join(dir, entry);
-    const stat = fs.statSync(full);
+    let stat;
+    try { stat = fs.statSync(full); } catch { continue; }
     if (stat.isDirectory()) {
       collectFiles(full, results);
     } else if (!SKIP_EXTS.has(path.extname(entry).toLowerCase())) {
