@@ -5,6 +5,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v3.3.1 — 2026-05-16
+
+**Hardening + quickstart polish.**
+
+- Fixed `EPERM` crash when scanning directories with restricted permissions (Windows `WinSAT`, etc.) — `collectFiles` now skips unreadable directories and files instead of throwing
+- Added npm badge to root README
+- Added Quickstart section at top of root README: `npx code-warden init`, `report`, `hooks`
+- Added contributor note about `npx` local-package conflict in source checkouts
+
+---
+
 ## v3.3.0 — 2026-05-16
 
 **npm package + CLI quickstart.**
