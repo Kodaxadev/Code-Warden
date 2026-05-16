@@ -4,7 +4,7 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.1.0-blue" alt="Version 3.1.0" />
+  <img src="https://img.shields.io/badge/version-3.1.0-blue" alt="Version 3.1.1" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
