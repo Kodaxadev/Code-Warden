@@ -25,14 +25,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: code-warden/package.json
 
-      - name: Lint — enforce file length limits
+      - name: Governance report
         working-directory: code-warden
-        run: npm run lint
+        run: npm run report
 
-      - name: Secrets — zero-trust scan
+      - name: Publish governance summary
+        if: always()
         working-directory: code-warden
-        run: npm run check-secrets
+        run: npm run report:md >> $GITHUB_STEP_SUMMARY
 
-      - name: Doctor — source integrity check
-        working-directory: code-warden
-        run: node install.js --doctor
+      - name: Upload governance artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-warden-report
+          path: code-warden/.code-warden-report.json
+          if-no-files-found: ignore
+          retention-days: 90
