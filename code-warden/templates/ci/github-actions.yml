@@ -4,8 +4,15 @@
 # Copy this file to .github/workflows/code-warden.yml in your project.
 #
 # What it enforces:
-#   - File length limits (warden-lint.js, default 400 lines per codewarden.json)
-#   - Zero-trust secrets (verify-secrets.js, hardcoded-credential patterns)
+#   - File length limits (default 400 lines per codewarden.json)
+#   - Zero-trust secrets (hardcoded-credential patterns)
+#   - Behavioral tests (scanner and hook pass/fail verification)
+#   - Source integrity (required files present)
+#
+# What it produces:
+#   - .code-warden-report.json — machine-readable governance artifact
+#   - Markdown summary on the workflow run / PR (via GITHUB_STEP_SUMMARY)
+#   - Uploaded artifact for audit trail (90-day retention)
 #
 # How code-warden is made available in CI (choose one):
 #
@@ -33,7 +40,7 @@ on:
     branches: [main, master]
 
 env:
-  CODE_WARDEN_VERSION: v3.1.0
+  CODE_WARDEN_VERSION: v3.2.0
   CODE_WARDEN_PATH: .code-warden-ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -59,8 +66,18 @@ jobs:
           mkdir -p ${{ env.CODE_WARDEN_PATH }}
           unzip -q cw.zip -d ${{ env.CODE_WARDEN_PATH }}
 
-      - name: Lint — enforce file length limits
-        run: node ${{ env.CODE_WARDEN_PATH }}/tools/warden-lint.js .
+      - name: Governance report
+        run: node ${{ env.CODE_WARDEN_PATH }}/tools/governance-report.js .
 
-      - name: Secrets — zero-trust scan
-        run: node ${{ env.CODE_WARDEN_PATH }}/tools/verify-secrets.js .
+      - name: Publish governance summary
+        if: always()
+        run: node ${{ env.CODE_WARDEN_PATH }}/tools/governance-report.js . --format=md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload governance artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-warden-report
+          path: .code-warden-report.json
+          if-no-files-found: ignore
+          retention-days: 90
