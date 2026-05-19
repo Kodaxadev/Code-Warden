@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-**Governance receipts, risk policy, MCP governance, Code Scanning, CI template parity, and report output paths.**
+**Governance receipts, reference selection, risk policy, MCP governance, Code Scanning, CI template parity, and report output paths.**
 
 - Added `code-warden receipt --template --out=<file>` for draft governance receipt artifacts.
 - Added `code-warden receipt --validate=<file>` to reject incomplete Scope Gate, Plan Gate, and final evidence records.
@@ -15,11 +15,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Added configurable `risk_policy` actions for `low`, `medium`, `high`, and `blocked` governance tiers.
 - Added risk policy evidence to JSON and Markdown governance reports.
 - Added `references/mcp-governance.md` for MCP server approval, toolset scope, credential handling, session/consent risk, SSRF risk, and audit evidence.
+- Added `code-warden references <paths...>` for path-based reference recommendations.
+- Added configurable `reference_selection.rules` so teams can tune which governance references apply to changed paths.
 - Added SARIF output via `report --format=sarif` for source-located file length and hardcoded credential findings.
 - Added `--out=<file>` so JSON, Markdown, and SARIF reports can be written directly to CI artifact paths.
 - Added optional SARIF upload support to the reusable GitHub Action.
 - Updated GitHub Actions pins to current Node 24-compatible majors: `checkout@v6`, `setup-node@v6`, `upload-artifact@v7`, and `upload-sarif@v4`.
-- Expanded behavioral tests to cover risk policy validation, receipt artifacts, UTF-8 BOM receipt input, report output paths, SARIF formatting, source locations, and CLI help examples.
+- Expanded behavioral tests to cover reference selection, risk policy validation, receipt artifacts, UTF-8 BOM receipt input, report output paths, SARIF formatting, source locations, and CLI help examples.
 - Kept JSON/Markdown as the canonical governance evidence for behavioral tests, install health, runtime hooks, and session gates.
 - Kept pinned `v3.3.2` release-download templates on released features until the next package release includes SARIF and `--out`.
 

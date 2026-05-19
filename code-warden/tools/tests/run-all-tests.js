@@ -7,6 +7,7 @@ const path = require('node:path');
 const TESTS = [
   'run-tests.js',
   'risk-policy-tests.js',
+  'reference-selector-tests.js',
 ];
 
 let failed = false;

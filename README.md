@@ -175,6 +175,7 @@ code-warden report --format=sarif # SARIF output for Code Scanning
 code-warden report --format=sarif --out=code-warden.sarif
 code-warden receipt --template --out=code-warden-receipt.json
 code-warden receipt --validate=code-warden-receipt.json
+code-warden references README.md code-warden/tools/
 code-warden doctor            # verify source + install health
 code-warden list              # show detected runtimes
 code-warden hooks claude      # install Claude Code PreToolUse hooks
@@ -271,6 +272,9 @@ sources. Before enabling one, Code-Warden expects an approval record covering
 server source, version, transport, toolsets, credential scope, data egress, and
 rollback. See [`code-warden/references/mcp-governance.md`](code-warden/references/mcp-governance.md).
 
+Use `code-warden references <paths...>` to recommend the focused governance
+references for touched paths. This is advisory loading, not hidden enforcement.
+
 ## CI Integration
 
 Use Code-Warden as a GitHub Action:
@@ -362,6 +366,7 @@ repositories.
 | `references/operations.md` | Verification evidence, git hygiene, dependency control |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
 | `references/mcp-governance.md` | MCP approval, toolset scope, credentials, consent, audit evidence |
+| `tools/lib/reference-selector.js` | Path-based governance reference recommendations |
 | `tools/lib/risk-policy.js` | Risk tier defaults, config merge, and validation |
 | `tools/receipt.js` | Governance receipt template and validation CLI |
 

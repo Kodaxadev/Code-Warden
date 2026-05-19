@@ -11,6 +11,26 @@
       "scripts/"
     ]
   },
+  "reference_selection": {
+    "rules": [
+      {
+        "patterns": ["README.md", "CHANGELOG.md", "docs/", "references/"],
+        "references": ["references/operations.md"]
+      },
+      {
+        "patterns": ["tools/", "bin/", "install.js", "package.json"],
+        "references": ["references/safety.md"]
+      },
+      {
+        "patterns": ["templates/", ".github/", "release"],
+        "references": ["references/operations.md", "references/research-and-fit.md"]
+      },
+      {
+        "patterns": ["mcp", "MCP"],
+        "references": ["references/mcp-governance.md"]
+      }
+    ]
+  },
   "risk_policy": {
     "actions": {
       "read_only": {

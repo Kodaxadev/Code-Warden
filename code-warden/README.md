@@ -56,7 +56,7 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 |-------|--------|---------|
 | File length | PASS | 44 files scanned, 0 violations |
 | Hardcoded credentials | PASS | 44 files scanned, 0 violations |
-| Behavioral tests | PASS | 21 tests, 0 failures |
+| Behavioral tests | PASS | 24 tests, 0 failures |
 | Install health | PASS | All source files present |
 | Risk policy | PASS | 7 governed actions |
 
@@ -137,6 +137,7 @@ code-warden init
 | `code-warden report --format=sarif --out=code-warden.sarif` | Write SARIF to a file |
 | `code-warden receipt --template --out=code-warden-receipt.json` | Write a draft Scope Gate / Plan Gate receipt |
 | `code-warden receipt --validate=code-warden-receipt.json` | Validate completed receipt evidence |
+| `code-warden references <paths...>` | Recommend focused governance references for touched paths |
 | `code-warden doctor` | Verify source integrity + install health |
 | `code-warden list` | Show detected runtimes |
 | `code-warden hooks claude` | Install Claude Code PreToolUse hooks |
@@ -175,7 +176,7 @@ npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
 npm run smoke:npx       # verify published package from a clean temp directory
-npm run test            # behavioral tests (21 scanner/report/receipt/risk/hook cases)
+npm run test            # behavioral tests (24 scanner/report/receipt/risk/reference/hook cases)
 npm run ci              # lint + secrets + test + doctor
 ```
 
@@ -250,6 +251,7 @@ All thresholds in [`codewarden.json`](codewarden.json):
 | `thresholds.pre_flight_trigger_lines` | 150 | Lines before a pre-flight manifest is required |
 | `thresholds.human_checkpoint_files` | 2 | Files touched before `[AWAITING CONFIRMATION]` is required |
 | `safety.exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | Paths excluded from rollback-plan rule |
+| `reference_selection.rules` | 4 path rules | Maps touched paths to focused reference files |
 | `risk_policy.actions` | 7 governed actions | Maps action classes to `low`, `medium`, `high`, or `blocked` |
 
 See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
@@ -257,6 +259,9 @@ See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
 Default risk policy treats read-only context gathering as `low`, file edits as
 `medium`, dependency/network/release operations as `high`, and destructive or
 secret-bearing actions as `blocked` until explicitly scoped.
+
+Reference selection is advisory. It helps agents load the right governance
+references for touched paths without pretending irrelevant rules disappeared.
 
 ## Reference Files
 

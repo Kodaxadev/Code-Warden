@@ -53,6 +53,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Reference selection is advisory path-based loading
+
+- **Decision**: Add `code-warden references <paths...>` and configurable `reference_selection.rules` for focused governance reference recommendations.
+- **Alternatives considered**:
+  - Load every reference file every session. Rejected because the growing rule library increases context noise and makes the important rules harder to see.
+  - Hide automatic loading inside the skill. Rejected because agents should be explicit about what references were selected and why.
+  - Depend on runtime-specific rule systems. Rejected because Code-Warden needs a portable selector that works across Codex, Claude Code, Cursor, Windsurf, and generic agents.
+- **Reasoning**: Cline's rule model shows that path-scoped rules reduce irrelevant context while keeping persistent project guidance available. Code-Warden adopts the pattern as advisory recommendations rather than silent enforcement so session receipts and Reference Files blocks remain honest. Source: https://docs.cline.bot/customization/cline-rules
+- **Files affected**: `bin/code-warden.js`, `codewarden.json`, `tools/lib/reference-selector.js`, `tools/select-references.js`, `tools/tests/reference-selector-tests.js`, `tools/tests/run-all-tests.js`, `README.md`, `code-warden/README.md`, `code-warden/SKILL.md`, `CHANGELOG.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Governance-first content positioning
 
 - **Decision**: Refresh public and package docs so Scope Gates, Plan Gates, blast radius, and verification remain the central product story while SARIF, CI, and npm packaging are presented as evidence layers.

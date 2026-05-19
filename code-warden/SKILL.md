@@ -15,11 +15,12 @@ metadata:
   version: 3.3.2
   category: development-governance
   changelog: |
-    Unreleased: Governance receipts, risk policy, MCP governance, SARIF output,
-      and Code Scanning integration. Added receipt --template, receipt --validate,
-      configurable risk_policy actions, MCP approval rules, report --format=sarif,
-      report --out=<file>, optional GitHub Code Scanning upload, current GitHub
-      Actions pins, and expanded tests.
+    Unreleased: Governance receipts, reference selection, risk policy, MCP
+      governance, SARIF output, and Code Scanning integration. Added receipt
+      --template, receipt --validate, references <paths...>, configurable
+      reference_selection and risk_policy rules, MCP approval rules,
+      report --format=sarif, report --out=<file>, optional GitHub Code Scanning
+      upload, current GitHub Actions pins, and expanded tests.
     v3.3.2 (2026-05-19): Scanner/package cleanup. Generated, lock, and log
       artifacts are skipped during scans, install manifests preserve final
       install paths during atomic swaps, and release archives move out of source.
@@ -146,6 +147,7 @@ information above.
 - **Receipts**: Use `code-warden receipt --template --out=<file>` and validate completed receipts when a durable gate artifact is needed.
 - **Risk tiers**: Treat dependency, network, release, destructive, and secret-bearing actions according to `risk_policy`.
 - **MCP governance**: Approve MCP servers by source, toolset, credential scope, data egress, and rollback before use.
+- **Reference selection**: Use `code-warden references <paths...>` to recommend focused governance references for touched paths.
 - **Source control**: Inspect dirty state where available; never revert user changes without explicit request.
 - **Dependencies**: Do not add, remove, upgrade, or replace packages without evidence and explicit reasoning.
 - **Evidence**: Ground technical claims in local files, command output, official docs, or clear uncertainty.
