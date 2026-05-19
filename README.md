@@ -50,8 +50,8 @@ If you run long Claude Code, Codex, or Cursor sessions — multi-file refactors,
 At its core, Code-Warden is a governance contract:
 - The agent states architecture context before acting.
 - The agent declares scope and patch order before edits.
-- The repo verifies file size, secrets, tests, install health, and runtime hooks.
-- The workflow keeps JSON, Markdown, SARIF, and release evidence outside chat memory.
+- The repo verifies file size, secrets, tests, install health, runtime hooks, and receipt artifacts.
+- The workflow keeps receipts, JSON, Markdown, SARIF, and release evidence outside chat memory.
 
 **Built for developers who:**
 - Run long, high-autonomy AI coding sessions
@@ -173,6 +173,8 @@ code-warden report            # generate governance report
 code-warden report --format=md # Markdown output (pipe to PR summary)
 code-warden report --format=sarif # SARIF output for Code Scanning
 code-warden report --format=sarif --out=code-warden.sarif
+code-warden receipt --template --out=code-warden-receipt.json
+code-warden receipt --validate=code-warden-receipt.json
 code-warden doctor            # verify source + install health
 code-warden list              # show detected runtimes
 code-warden hooks claude      # install Claude Code PreToolUse hooks
@@ -246,6 +248,18 @@ findings with source locations (`CW001/max-file-length` and
 `CW002/hardcoded-credential`). Behavioral tests, install health, runtime hook
 state, and session governance remain in JSON/Markdown because they are
 workflow evidence, not source-code findings.
+
+Governance receipts cover the part reports cannot know by themselves: the
+confirmed Scope Gate and Plan Gate. Generate a draft receipt before or during a
+session, fill in the gate and final command evidence, then validate it:
+
+```bash
+code-warden receipt --template --out=code-warden-receipt.json
+code-warden receipt --validate=code-warden-receipt.json
+```
+
+Receipts deliberately start as drafts with `canProveCompliance: false`; they
+become valid only when the required evidence is filled in.
 
 ## CI Integration
 
@@ -337,6 +351,7 @@ repositories.
 | `references/anti-drift.md` | Anchor Check, Session Scoping, Drift Trigger |
 | `references/operations.md` | Verification evidence, git hygiene, dependency control |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
+| `tools/receipt.js` | Governance receipt template and validation CLI |
 
 ## Version
 

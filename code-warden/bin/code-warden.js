@@ -10,6 +10,7 @@ const COMMANDS = {
   init:    { desc: 'Install Code-Warden to detected AI runtimes', run: ['install.js', '--all'] },
   doctor:  { desc: 'Verify source integrity and install health',  run: ['install.js', '--doctor'] },
   report:  { desc: 'Generate governance report (.code-warden-report.json)', run: ['tools/governance-report.js', '.'] },
+  receipt: { desc: 'Create or validate governance receipt artifacts', run: ['tools/receipt.js'] },
   list:    { desc: 'Show detected AI runtimes',                   run: ['install.js', '--list'] },
 };
 
@@ -28,6 +29,8 @@ function usage() {
   console.log(`  npx code-warden report`);
   console.log(`  npx code-warden report --format=md`);
   console.log(`  npx code-warden report --format=sarif --out=code-warden.sarif`);
+  console.log(`  npx code-warden receipt --template --out=code-warden-receipt.json`);
+  console.log(`  npx code-warden receipt --validate=code-warden-receipt.json`);
   console.log(`  npx code-warden hooks claude`);
 }
 

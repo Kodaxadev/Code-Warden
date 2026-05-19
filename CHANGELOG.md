@@ -7,13 +7,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-**Code Scanning, CI template parity, and report output paths.**
+**Governance receipts, Code Scanning, CI template parity, and report output paths.**
 
+- Added `code-warden receipt --template --out=<file>` for draft governance receipt artifacts.
+- Added `code-warden receipt --validate=<file>` to reject incomplete Scope Gate, Plan Gate, and final evidence records.
+- Kept receipts honest: templates start as drafts and validation only passes when declared gate evidence is complete.
 - Added SARIF output via `report --format=sarif` for source-located file length and hardcoded credential findings.
 - Added `--out=<file>` so JSON, Markdown, and SARIF reports can be written directly to CI artifact paths.
 - Added optional SARIF upload support to the reusable GitHub Action.
 - Updated GitHub Actions pins to current Node 24-compatible majors: `checkout@v6`, `setup-node@v6`, `upload-artifact@v7`, and `upload-sarif@v4`.
-- Expanded behavioral tests to cover report output paths, SARIF formatting, source locations, and CLI help examples.
+- Expanded behavioral tests to cover receipt artifacts, UTF-8 BOM receipt input, report output paths, SARIF formatting, source locations, and CLI help examples.
 - Kept JSON/Markdown as the canonical governance evidence for behavioral tests, install health, runtime hooks, and session gates.
 - Kept pinned `v3.3.2` release-download templates on released features until the next package release includes SARIF and `--out`.
 

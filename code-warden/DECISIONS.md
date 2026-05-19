@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Governance receipts start as honest artifacts
+
+- **Decision**: Add `code-warden receipt --template --out=<file>` and `code-warden receipt --validate=<file>` as the first durable session-governance artifact surface.
+- **Alternatives considered**:
+  - Auto-generate a completed receipt from the CLI. Rejected because the CLI cannot know whether Scope Gate, Plan Gate, and human confirmation actually happened in chat.
+  - Fold receipts into the existing governance report immediately. Rejected because reports prove repository checks, while receipts record the pre-edit human contract and should have a separately validated schema first.
+  - Skip receipts and keep Scope Gate / Plan Gate as chat-only protocol. Rejected because chat-only gates are hard to audit after context scrolls away.
+- **Reasoning**: Current AI coding ecosystems support persistent rules, hooks, plugins, and security policies, but Code-Warden's core promise is stronger when session gates become durable evidence. Claude plugins show bundling of skills/hooks/MCP into installable governance surfaces, Cline shows scoped persistent rules, and OpenHands shows configurable security policy patterns. The first receipt slice keeps claims honest by validating only declared evidence instead of inventing proof. Sources: https://code.claude.com/docs/en/plugins-reference, https://docs.cline.bot/customization/cline-rules, https://docs.openhands.dev/sdk/guides/security
+- **Files affected**: `bin/code-warden.js`, `tools/receipt.js`, `tools/tests/run-tests.js`, `README.md`, `code-warden/README.md`, `code-warden/SKILL.md`, `CHANGELOG.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Governance-first content positioning
 
 - **Decision**: Refresh public and package docs so Scope Gates, Plan Gates, blast radius, and verification remain the central product story while SARIF, CI, and npm packaging are presented as evidence layers.

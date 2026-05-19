@@ -42,7 +42,7 @@ The report runs all checks in a single pass (file length, secrets, behavioral te
   "checks": {
     "fileLength":      { "status": "pass", "filesScanned": 44, "violations": 0 },
     "secrets":         { "status": "pass", "filesScanned": 44, "violations": 0 },
-    "behavioralTests": { "status": "pass", "tests": 14, "failures": 0 },
+    "behavioralTests": { "status": "pass", "tests": 17, "failures": 0 },
     "installHealth":   { "status": "pass" }
   },
   "result": "pass"
@@ -55,7 +55,7 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 |-------|--------|---------|
 | File length | PASS | 44 files scanned, 0 violations |
 | Hardcoded credentials | PASS | 44 files scanned, 0 violations |
-| Behavioral tests | PASS | 14 tests, 0 failures |
+| Behavioral tests | PASS | 17 tests, 0 failures |
 | Install health | PASS | All source files present |
 
 See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
@@ -64,6 +64,20 @@ SARIF output is intentionally limited to source-located findings:
 `CW001/max-file-length` and `CW002/hardcoded-credential`. The JSON report
 remains the canonical governance artifact for behavioral tests, install health,
 runtime hook registration, and session gate evidence.
+
+### Governance Receipts
+
+Reports prove repository checks ran. Receipts record the human-confirmed session
+contract that happened before edits:
+
+```bash
+code-warden receipt --template --out=code-warden-receipt.json
+code-warden receipt --validate=code-warden-receipt.json
+```
+
+Receipt templates start as `draft` and `canProveCompliance: false`. Validation
+only passes after Scope Gate, Plan Gate, and final command evidence fields are
+filled. Code-Warden will not claim chat compliance that was not recorded.
 
 ### GitHub Action
 
@@ -119,6 +133,8 @@ code-warden init
 | `code-warden report --format=md` | Markdown output for PR summaries |
 | `code-warden report --format=sarif` | SARIF output for Code Scanning |
 | `code-warden report --format=sarif --out=code-warden.sarif` | Write SARIF to a file |
+| `code-warden receipt --template --out=code-warden-receipt.json` | Write a draft Scope Gate / Plan Gate receipt |
+| `code-warden receipt --validate=code-warden-receipt.json` | Validate completed receipt evidence |
 | `code-warden doctor` | Verify source integrity + install health |
 | `code-warden list` | Show detected runtimes |
 | `code-warden hooks claude` | Install Claude Code PreToolUse hooks |
@@ -157,7 +173,7 @@ npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
 npm run smoke:npx       # verify published package from a clean temp directory
-npm run test            # behavioral tests (14 scanner/report/hook cases)
+npm run test            # behavioral tests (17 scanner/report/receipt/hook cases)
 npm run ci              # lint + secrets + test + doctor
 ```
 

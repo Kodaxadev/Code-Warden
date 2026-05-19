@@ -113,6 +113,32 @@ function runHook(scriptPath, payload) {
   return { code: result.status ?? result.signal, stdout: result.stdout || '', stderr: result.stderr || '' };
 }
 
+function makeCompleteReceipt() {
+  return {
+    schemaVersion: 1,
+    kind: 'code-warden/governance-receipt',
+    status: 'complete',
+    scopeGate: {
+      confirmed: true,
+      goal: 'Add governance receipts.',
+      nonGoals: ['No release'],
+      filesIn: ['code-warden/tools/receipt.js'],
+      filesOut: ['release tags'],
+      verifyAfter: ['npm test'],
+      rollback: 'git checkout HEAD -- code-warden/tools/receipt.js',
+    },
+    planGate: {
+      confirmed: true,
+      patchOrder: ['Add tests', 'Add implementation'],
+      blastRadius: 'MODERATE',
+      humanCheckpoint: 'YES',
+      postPatchChecks: ['npm test', 'npm run ci'],
+    },
+    finalEvidence: { commands: ['npm test'], reports: [], notes: [] },
+    validation: { canProveCompliance: true },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // CLI: warden-lint
 // ---------------------------------------------------------------------------
@@ -240,6 +266,67 @@ test('code-warden CLI help: documents SARIF and --out examples', () => {
   const { code, stdout } = runCLI(path.join(ROOT, 'bin', 'code-warden.js'), ['--help']);
   assert.equal(code, 0, 'expected CLI help to exit 0');
   assert.match(stdout, /report --format=sarif --out=code-warden\.sarif/);
+});
+
+test('code-warden receipt: writes an incomplete governance receipt template', () => {
+  const out = writeTmp('receipt-template.json', '');
+  try {
+    fs.rmSync(out, { force: true });
+    const { code, stdout } = runCLI(path.join(ROOT, 'bin', 'code-warden.js'), [
+      'receipt',
+      '--template',
+      `--out=${out}`,
+    ]);
+    assert.equal(code, 0, 'expected receipt template command to exit 0');
+    assert.equal(stdout.trim(), `[CodeWarden] Receipt template written to ${path.resolve(out)}`);
+
+    const receipt = JSON.parse(fs.readFileSync(out, 'utf8'));
+    assert.equal(receipt.schemaVersion, 1);
+    assert.equal(receipt.kind, 'code-warden/governance-receipt');
+    assert.equal(receipt.status, 'draft');
+    assert.equal(receipt.scopeGate.confirmed, false);
+    assert.equal(receipt.planGate.confirmed, false);
+    assert.equal(receipt.validation.canProveCompliance, false);
+  } finally {
+    fs.rmSync(out, { force: true });
+  }
+});
+
+test('code-warden receipt: validation rejects missing gate evidence', () => {
+  const receipt = {
+    schemaVersion: 1,
+    kind: 'code-warden/governance-receipt',
+    status: 'complete',
+    scopeGate: { confirmed: true, goal: 'Ship a feature.' },
+    planGate: { confirmed: true },
+    validation: { canProveCompliance: true },
+  };
+  const input = writeTmp('receipt-invalid.json', JSON.stringify(receipt, null, 2));
+  try {
+    const { code, stderr } = runCLI(path.join(ROOT, 'bin', 'code-warden.js'), [
+      'receipt',
+      `--validate=${input}`,
+    ]);
+    assert.equal(code, 1, 'expected invalid receipt to fail validation');
+    assert.match(stderr, /scopeGate\.filesIn/);
+    assert.match(stderr, /planGate\.patchOrder/);
+  } finally {
+    fs.rmSync(input, { force: true });
+  }
+});
+
+test('code-warden receipt: validation accepts UTF-8 BOM JSON files', () => {
+  const input = writeTmp('receipt-bom.json', '\uFEFF' + JSON.stringify(makeCompleteReceipt(), null, 2));
+  try {
+    const { code, stdout } = runCLI(path.join(ROOT, 'bin', 'code-warden.js'), [
+      'receipt',
+      `--validate=${input}`,
+    ]);
+    assert.equal(code, 0, 'expected valid BOM receipt to pass validation');
+    assert.match(stdout, /Receipt validation passed/);
+  } finally {
+    fs.rmSync(input, { force: true });
+  }
 });
 
 test('external smoke helper: exposes CLI help', () => {
