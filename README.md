@@ -267,6 +267,11 @@ policy marks read-only work as `low`, file edits as `medium`,
 dependency/network/release operations as `high`, and destructive or
 secret-bearing actions as `blocked`.
 
+External evidence providers are recorded with scope and trust limits. Code
+Scanning SARIF, secret scanning, dependency scans, artifact attestations, npm
+provenance, and CI run links can support a governance claim, but they do not
+replace Scope Gate, Plan Gate, or receipts.
+
 MCP servers are governed as tool-bearing integrations, not harmless context
 sources. Before enabling one, Code-Warden expects an approval record covering
 server source, version, transport, toolsets, credential scope, data egress, and
@@ -364,6 +369,7 @@ repositories.
 | `references/cleanup.md` | Tech Debt format, Test Contract, Decision Log |
 | `references/anti-drift.md` | Anchor Check, Session Scoping, Drift Trigger |
 | `references/operations.md` | Verification evidence, git hygiene, dependency control |
+| `references/evidence-providers.md` | External scanners, provenance, attestations, CI evidence, trust limits |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
 | `references/mcp-governance.md` | MCP approval, toolset scope, credentials, consent, audit evidence |
 | `tools/lib/reference-selector.js` | Path-based governance reference recommendations |

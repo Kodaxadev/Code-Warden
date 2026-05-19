@@ -65,6 +65,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - External evidence providers have explicit trust limits
+
+- **Decision**: Add `references/evidence-providers.md` and descriptive `external_evidence.providers` config vocabulary before adding provider API collection.
+- **Alternatives considered**:
+  - Add live provider calls first. Rejected because each provider has different auth, rate limits, artifacts, and trust boundaries; the vocabulary should land before integrations.
+  - Treat SARIF and provenance as complete governance proof. Rejected because SARIF is source-finding evidence and provenance proves artifact origin, not session compliance.
+  - Keep provider guidance only in release docs. Rejected because provider evidence affects normal development, CI, release, and MCP workflows.
+- **Reasoning**: GitHub Code Scanning consumes third-party SARIF, GitHub artifact attestations establish build provenance, npm trusted publishing creates provenance for packages, and agent security providers such as Snyk are moving security checks into agent/MCP workflows. Code-Warden should aggregate those signals with scope and trust limits instead of treating them as interchangeable proof. Sources: https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github?learn=code_security_integration%2F1000, https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds, https://docs.npmjs.com/trusted-publishers, https://docs.snyk.io/integrations/snyk-studio-agentic-integrations
+- **Files affected**: `references/evidence-providers.md`, `codewarden.json`, `SKILL.md`, `README.md`, `code-warden/README.md`, `CHANGELOG.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Governance-first content positioning
 
 - **Decision**: Refresh public and package docs so Scope Gates, Plan Gates, blast radius, and verification remain the central product story while SARIF, CI, and npm packaging are presented as evidence layers.

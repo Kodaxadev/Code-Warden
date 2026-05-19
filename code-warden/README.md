@@ -252,6 +252,7 @@ All thresholds in [`codewarden.json`](codewarden.json):
 | `thresholds.human_checkpoint_files` | 2 | Files touched before `[AWAITING CONFIRMATION]` is required |
 | `safety.exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | Paths excluded from rollback-plan rule |
 | `reference_selection.rules` | 4 path rules | Maps touched paths to focused reference files |
+| `external_evidence.providers` | 4 providers | Describes approved external evidence sources and trust limits |
 | `risk_policy.actions` | 7 governed actions | Maps action classes to `low`, `medium`, `high`, or `blocked` |
 
 See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
@@ -262,6 +263,10 @@ secret-bearing actions as `blocked` until explicitly scoped.
 
 Reference selection is advisory. It helps agents load the right governance
 references for touched paths without pretending irrelevant rules disappeared.
+
+External evidence providers are descriptive in this release line. SARIF,
+attestations, provenance, and scanner output should be recorded with scope and
+trust limits before being treated as governance evidence.
 
 ## Reference Files
 
@@ -274,6 +279,7 @@ references for touched paths without pretending irrelevant rules disappeared.
 | `references/cleanup.md` | Tech Debt format, Test Contract, Decision Log |
 | `references/anti-drift.md` | Anchor Check, Session Scoping, Drift Trigger Protocol |
 | `references/operations.md` | Verification, source-control hygiene, dependency control |
+| `references/evidence-providers.md` | External scanners, provenance, attestations, CI evidence, trust limits |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
 | `references/mcp-governance.md` | MCP server approval, toolset scope, credentials, consent, audit evidence |
 

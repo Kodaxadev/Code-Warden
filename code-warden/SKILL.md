@@ -15,12 +15,12 @@ metadata:
   version: 3.3.2
   category: development-governance
   changelog: |
-    Unreleased: Governance receipts, reference selection, risk policy, MCP
-      governance, SARIF output, and Code Scanning integration. Added receipt
-      --template, receipt --validate, references <paths...>, configurable
-      reference_selection and risk_policy rules, MCP approval rules,
-      report --format=sarif, report --out=<file>, optional GitHub Code Scanning
-      upload, current GitHub Actions pins, and expanded tests.
+    Unreleased: Governance receipts, evidence providers, reference selection,
+      risk policy, MCP governance, SARIF output, and Code Scanning integration.
+      Added receipt --template, receipt --validate, references <paths...>,
+      configurable external_evidence, reference_selection, and risk_policy rules,
+      MCP approval rules, report --format=sarif, report --out=<file>, optional
+      GitHub Code Scanning upload, current GitHub Actions pins, and expanded tests.
     v3.3.2 (2026-05-19): Scanner/package cleanup. Generated, lock, and log
       artifacts are skipped during scans, install manifests preserve final
       install paths during atomic swaps, and release archives move out of source.
@@ -144,6 +144,7 @@ information above.
 - **Uncertainty**: Say so. Never guess niche syntax or stale API behavior.
 - **Concerns**: One responsibility per file. Support human auditing.
 - **Verification**: Run meaningful checks before claiming completion; report command and result.
+- **Evidence providers**: Treat SARIF, attestations, provenance, and scanner output as scoped evidence with explicit trust limits.
 - **Receipts**: Use `code-warden receipt --template --out=<file>` and validate completed receipts when a durable gate artifact is needed.
 - **Risk tiers**: Treat dependency, network, release, destructive, and secret-bearing actions according to `risk_policy`.
 - **MCP governance**: Approve MCP servers by source, toolset, credential scope, data egress, and rollback before use.
@@ -165,6 +166,7 @@ Load these when relevant to the current task:
 - Tech Debt flag format, Test Contract, Decision Log -> [references/cleanup.md](references/cleanup.md)
 - Anchor Check, Session Scoping, Drift Trigger -> [references/anti-drift.md](references/anti-drift.md)
 - Verification, git hygiene, dependency control, evidence -> [references/operations.md](references/operations.md)
+- External evidence providers, provenance, attestations, SARIF, and trust limits -> [references/evidence-providers.md](references/evidence-providers.md)
 - Live research, anti-default stack choices, product-shape fit -> [references/research-and-fit.md](references/research-and-fit.md)
 - MCP server approval, toolset scope, credentials, consent, and audit evidence -> [references/mcp-governance.md](references/mcp-governance.md)
 

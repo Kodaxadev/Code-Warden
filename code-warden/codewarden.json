@@ -31,6 +31,34 @@
       }
     ]
   },
+  "external_evidence": {
+    "providers": {
+      "github_code_scanning": {
+        "category": "code_scanning",
+        "required": false,
+        "artifact": "SARIF upload / Code Scanning alerts",
+        "trust_limit": "Source-located findings only; not session governance proof."
+      },
+      "github_artifact_attestations": {
+        "category": "build_provenance",
+        "required": false,
+        "artifact": "GitHub artifact attestation",
+        "trust_limit": "Proves build artifact provenance, not source security."
+      },
+      "npm_trusted_publishing": {
+        "category": "package_provenance",
+        "required": false,
+        "artifact": "npm provenance attestation",
+        "trust_limit": "Proves package publish source, not governance compliance."
+      },
+      "agent_security": {
+        "category": "agent_security",
+        "required": false,
+        "artifact": "Provider-specific MCP or agent security output",
+        "trust_limit": "Requires approved MCP/tool credentials before trusted use."
+      }
+    }
+  },
   "risk_policy": {
     "actions": {
       "read_only": {
