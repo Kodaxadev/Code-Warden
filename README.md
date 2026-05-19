@@ -47,6 +47,12 @@ If you run short, supervised one-file AI edits, Code-Warden may be overkill.
 
 If you run long Claude Code, Codex, or Cursor sessions — multi-file refactors, parallel projects, CI-gated work, or client and product code — Code-Warden gives your agent declared scope, verifiable checks, and enforceable safety rails.
 
+At its core, Code-Warden is a governance contract:
+- The agent states architecture context before acting.
+- The agent declares scope and patch order before edits.
+- The repo verifies file size, secrets, tests, install health, and runtime hooks.
+- The workflow keeps JSON, Markdown, SARIF, and release evidence outside chat memory.
+
 **Built for developers who:**
 - Run long, high-autonomy AI coding sessions
 - Let agents touch multiple files or whole modules
@@ -175,6 +181,8 @@ code-warden uninstall-hooks claude
 code-warden uninstall-hooks codex
 ```
 
+SARIF and `--out` examples are on `main` and will ship in the next package release.
+
 ## Invoke
 
 ```
@@ -288,17 +296,6 @@ Or download a pinned release directly:
   if: always()
   run: node .code-warden-ci/tools/governance-report.js . --format=md >> $GITHUB_STEP_SUMMARY
 
-- name: Generate SARIF report
-  if: always()
-  run: node .code-warden-ci/tools/governance-report.js . --format=sarif --out=code-warden.sarif || true
-
-- name: Upload SARIF report
-  if: always()
-  uses: github/codeql-action/upload-sarif@v4
-  with:
-    sarif_file: code-warden.sarif
-    category: code-warden
-
 - name: Upload governance artifact
   if: always()
   uses: actions/upload-artifact@v7
@@ -307,6 +304,10 @@ Or download a pinned release directly:
     path: .code-warden-report.json
     retention-days: 90
 ```
+
+The pinned `v3.3.2` release-download path does not include the unreleased SARIF
+and `--out` work on `main`. Use the repository action for SARIF today, or wait
+for the next release before adding SARIF to a downloaded-release template.
 
 Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templates/ci/github-actions.yml)
 

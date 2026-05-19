@@ -3,9 +3,10 @@
 > Portable AI Coding Governance Layer
 
 Code-Warden provides verifiable governance for AI-assisted development.
-It does not just ask agents to follow rules — it adds Scope Gates, Plan Gates,
-local checks, CI enforcement, runtime hooks where supported, and governance
-artifacts that show what was checked before code was accepted.
+It does not just ask agents to follow rules. It makes them declare scope,
+patch order, blast radius, and verification before code is accepted. Local
+checks, CI enforcement, runtime hooks, and report artifacts keep that contract
+auditable after the chat scrolls away.
 
 ## Four Layers
 
@@ -39,9 +40,9 @@ The report runs all checks in a single pass (file length, secrets, behavioral te
   "tool": "code-warden",
   "version": "3.3.2",
   "checks": {
-    "fileLength":      { "status": "pass", "filesScanned": 34, "violations": 0 },
-    "secrets":         { "status": "pass", "filesScanned": 34, "violations": 0 },
-    "behavioralTests": { "status": "pass", "tests": 9, "failures": 0 },
+    "fileLength":      { "status": "pass", "filesScanned": 44, "violations": 0 },
+    "secrets":         { "status": "pass", "filesScanned": 44, "violations": 0 },
+    "behavioralTests": { "status": "pass", "tests": 14, "failures": 0 },
     "installHealth":   { "status": "pass" }
   },
   "result": "pass"
@@ -52,9 +53,9 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 
 | Check | Result | Details |
 |-------|--------|---------|
-| File length | PASS | 34 files scanned, 0 violations |
-| Hardcoded credentials | PASS | 34 files scanned, 0 violations |
-| Behavioral tests | PASS | 9 tests, 0 failures |
+| File length | PASS | 44 files scanned, 0 violations |
+| Hardcoded credentials | PASS | 44 files scanned, 0 violations |
+| Behavioral tests | PASS | 14 tests, 0 failures |
 | Install health | PASS | All source files present |
 
 See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
@@ -156,7 +157,7 @@ npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
 npm run smoke:npx       # verify published package from a clean temp directory
-npm run test            # behavioral tests (9 scanner/hook pass/fail cases)
+npm run test            # behavioral tests (14 scanner/report/hook cases)
 npm run ci              # lint + secrets + test + doctor
 ```
 
@@ -182,33 +183,44 @@ The session sequence is enforced before any implementation:
 
 See [`examples/governed-session.md`](examples/governed-session.md) for an annotated example.
 
-## Optional Claude Code Hooks
+## Optional Runtime Hooks
 
 <p align="center">
   <img src="../logo/hook-flow.png" alt="Code-Warden Hook Enforcement Flow" width="100%" />
 </p>
 
-Install hard enforcement that runs at the `PreToolUse` level — before writes happen:
+Install hard enforcement that runs at the `PreToolUse` level where the runtime exposes usable surfaces.
 
 ```bash
-# Requires Claude Code target to be installed first
-node install.js --hooks=claude
+node install.js --hooks=claude  # full Write/Edit coverage
+node install.js --hooks=codex   # partial apply_patch/Bash coverage
 ```
+
+### Claude Code
 
 | Hook | Trigger | Policy |
 |------|---------|--------|
 | `warden-lint-hook.js` | `Write` or `Edit` | Blocks if resulting file exceeds line limit |
 | `warden-secrets-hook.js` | `Write` or `Edit` | Hardcoded credential scanner — blocks if content matches any secret pattern |
 
-Both hooks use exec form (`node /path/to/hook.js`) — no shell differences across platforms.
+### OpenAI Codex
+
+| Hook | Trigger | Policy |
+|------|---------|--------|
+| `warden-apply-patch-hook.js` | `apply_patch` | Blocks added credentials and estimates resulting file size where a path is extractable |
+| `warden-bash-hook.js` | `Bash` | Blocks command strings that contain hardcoded credentials |
+
+Codex cannot hook `Write`/`Edit` directly. CI enforcement closes the remaining gap.
+All hooks use exec form (`node /path/to/hook.js`) — no shell differences across platforms.
 
 Thresholds are read from `codewarden.json` in the installed skill directory.
 
 ```bash
-node install.js --uninstall-hooks=claude  # remove hook entries from settings.json
+node install.js --uninstall-hooks=claude
+node install.js --uninstall-hooks=codex
 ```
 
-Doctor and `--verify-target=claude` validate hook script paths when hooks are registered.
+Doctor and `--verify-target=<id>` validate hook script paths when hooks are registered.
 
 ## Configuration
 

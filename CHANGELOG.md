@@ -5,6 +5,31 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## Unreleased
+
+**Code Scanning, CI template parity, and report output paths.**
+
+- Added SARIF output via `report --format=sarif` for source-located file length and hardcoded credential findings.
+- Added `--out=<file>` so JSON, Markdown, and SARIF reports can be written directly to CI artifact paths.
+- Added optional SARIF upload support to the reusable GitHub Action.
+- Updated GitHub Actions pins to current Node 24-compatible majors: `checkout@v6`, `setup-node@v6`, `upload-artifact@v7`, and `upload-sarif@v4`.
+- Expanded behavioral tests to cover report output paths, SARIF formatting, source locations, and CLI help examples.
+- Kept JSON/Markdown as the canonical governance evidence for behavioral tests, install health, runtime hooks, and session gates.
+- Kept pinned `v3.3.2` release-download templates on released features until the next package release includes SARIF and `--out`.
+
+---
+
+## v3.3.2 - 2026-05-19
+
+**Scanner/package cleanup.**
+
+- Skipped generated directories, lockfiles, and log files during scanner traversal.
+- Preserved final install paths in install manifests during atomic swaps.
+- Moved release archives out of the tracked source tree.
+- Published `code-warden@3.3.2` to npm and kept GitHub releases focused on current release assets.
+
+---
+
 ## v3.3.1 — 2026-05-16
 
 **Hardening + quickstart polish.**

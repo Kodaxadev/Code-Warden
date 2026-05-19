@@ -15,6 +15,9 @@ metadata:
   version: 3.3.2
   category: development-governance
   changelog: |
+    Unreleased: SARIF output and Code Scanning integration. Added report
+      --format=sarif, report --out=<file>, optional GitHub Code Scanning upload,
+      current GitHub Actions pins, and expanded behavioral tests.
     v3.3.2 (2026-05-19): Scanner/package cleanup. Generated, lock, and log
       artifacts are skipped during scans, install manifests preserve final
       install paths during atomic swaps, and release archives move out of source.

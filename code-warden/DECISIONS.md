@@ -17,14 +17,38 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Governance-first content positioning
+
+- **Decision**: Refresh public and package docs so Scope Gates, Plan Gates, blast radius, and verification remain the central product story while SARIF, CI, and npm packaging are presented as evidence layers.
+- **Alternatives considered**:
+  - Keep adding CI/reporting details without repositioning. Rejected because it makes Code-Warden look like only a scanner instead of an AI development governance protocol.
+  - Rewrite all docs from scratch. Rejected because the existing README already captures the target user and adoption path; targeted corrections preserve continuity.
+  - Remove CI/SARIF detail from top-level docs. Rejected because verifiable artifacts are part of the original governance intent, not a separate product.
+- **Reasoning**: The original purpose was to govern delegated AI coding work before and during edits, then prove compliance afterward. Documentation should keep that order: intent and session gates first, evidence artifacts second, hard enforcement where runtime surfaces allow it.
+- **Files affected**: `README.md`, `CHANGELOG.md`, `code-warden/README.md`, `code-warden/SKILL.md`, `code-warden/CONFIGURE.md`, `DECISIONS.md`
+
+---
+
+## 2026-05-19 - Pinned release examples must not use unreleased flags
+
+- **Decision**: Keep the `v3.3.2` release-download CI template on JSON/Markdown/artifact behavior and direct SARIF users to the repository action until the next release includes `--format=sarif` and `--out=<file>`.
+- **Alternatives considered**:
+  - Leave SARIF active in the `v3.3.2` download template. Rejected because `v3.3.2` does not contain the unreleased SARIF and output-path work.
+  - Point the template at a future version. Rejected because copy-paste templates should not reference releases that do not exist yet.
+  - Remove SARIF documentation entirely. Rejected because the repository action on `main` has already verified SARIF upload successfully.
+- **Reasoning**: Documentation must not ask users to run CLI flags that are not present in the pinned release being downloaded. The next release can make the downloaded-release template and SARIF path fully converge.
+- **Files affected**: `README.md`, `CHANGELOG.md`, `code-warden/templates/ci/github-actions.yml`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Report output paths support CI artifacts directly
 
-- **Decision**: Add `--out=<file>` to `governance-report.js` and document it through the public `code-warden report` wrapper. Update the copyable CI template to generate a SARIF file and upload it to GitHub Code Scanning.
+- **Decision**: Add `--out=<file>` to `governance-report.js` and document it through the public `code-warden report` wrapper. Keep SARIF upload active in the repository action and defer downloaded-release template activation until the next package release includes the new flags.
 - **Alternatives considered**:
   - Keep relying on shell redirection. Rejected because redirects are harder to make cross-shell friendly in examples and do not create parent directories.
   - Add SARIF only to the root composite action. Rejected because users copying the release-download template should get the same Code Scanning path.
   - Add a separate `sarif` subcommand. Rejected because `report --format=sarif --out=...` keeps report generation in one CLI surface.
-- **Reasoning**: CI systems typically want report artifacts as files. A first-class output path makes SARIF generation explicit, easier to test, and easier to copy into GitHub Actions templates while keeping stdout behavior stable when `--out` is absent.
+- **Reasoning**: CI systems typically want report artifacts as files. A first-class output path makes SARIF generation explicit and easier to test while keeping stdout behavior stable when `--out` is absent.
 - **Files affected**: `bin/code-warden.js`, `tools/governance-report.js`, `tools/tests/run-tests.js`, `templates/ci/github-actions.yml`, `README.md`, `code-warden/README.md`, `DECISIONS.md`
 
 ---

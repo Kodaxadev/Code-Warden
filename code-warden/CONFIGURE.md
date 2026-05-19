@@ -33,7 +33,7 @@ Located at the root of the skill folder. Default configuration:
 
 ## How to Customize
 
-1. **Open** `codewarden.json` in your `.claude/skills/code-warden/` directory.
+1. **Open** `codewarden.json` in the installed skill directory for your runtime, such as `.claude/skills/code-warden/`, `.codex/skills/code-warden/`, or `.agents/skills/code-warden/`.
 2. **Modify** the specific rule or threshold inside the JSON structural fields.
 3. The executable tools (`tools/warden-lint.js`, etc.) read these limits dynamically so no Markdown files need to be edited to enforce limits.
 4. **Log the change** in `DECISIONS.md` so your team knows why the default was overridden.
