@@ -26,23 +26,11 @@ jobs:
           cache-dependency-path: code-warden/package.json
 
       - name: Governance report
-        working-directory: code-warden
-        run: npm run report
+        uses: ./
+        with:
+          path: code-warden
+          artifact-name: code-warden-report
 
       - name: External npx smoke test
         working-directory: code-warden
         run: npm run smoke:npx
-
-      - name: Publish governance summary
-        if: always()
-        working-directory: code-warden
-        run: npm run report:md >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload governance artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-warden-report
-          path: code-warden/.code-warden-report.json
-          if-no-files-found: ignore
-          retention-days: 90

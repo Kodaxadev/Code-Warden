@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Composite GitHub Action as first reusable CI entrypoint
+
+- **Decision**: Add a root `action.yml` composite action that runs the packaged Code-Warden governance report, writes a Markdown summary, and uploads the JSON report artifact. Dogfood it in the repository's own quality workflow.
+- **Alternatives considered**:
+  - Keep only the copy-paste workflow template. Rejected because `uses: Kodaxadev/Code-Warden@v3` is a lower-friction adoption path and easier to keep current.
+  - Build a JavaScript action. Rejected for this slice because the existing Node scripts already provide the behavior, and a composite action avoids a bundled action build step.
+  - Put the action under `.github/actions/`. Rejected because a root `action.yml` is the standard repository action entrypoint for `owner/repo@ref` usage.
+- **Reasoning**: Code-Warden's CI value should be available as a small reusable action before adding richer outputs such as SARIF. A composite action keeps the action auditable and delegates policy behavior to the same local scripts used by npm and release verification.
+- **Files affected**: `action.yml`, `.github/workflows/code-warden.yml`, `README.md`, `code-warden/README.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - External npm smoke test stays separate from local CI
 
 - **Decision**: Add `tools/smoke-npx.js` and `npm run smoke:npx` to verify the published package through `npx code-warden@latest` from a clean temp directory. The repository quality workflow runs it as a separate step, while `npm run ci` remains local and deterministic.

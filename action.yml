@@ -1,0 +1,50 @@
+name: Code-Warden Governance Gate
+description: Run Code-Warden governance checks and publish PR-visible evidence.
+
+inputs:
+  path:
+    description: Path to scan, relative to the workflow workspace.
+    required: false
+    default: .
+  summary:
+    description: Write a Markdown governance summary to GITHUB_STEP_SUMMARY.
+    required: false
+    default: 'true'
+  upload-artifact:
+    description: Upload .code-warden-report.json as a workflow artifact.
+    required: false
+    default: 'true'
+  artifact-name:
+    description: Artifact name for the governance report.
+    required: false
+    default: code-warden-report
+
+outputs:
+  report-path:
+    description: Path to the generated governance report.
+    value: .code-warden-report.json
+
+branding:
+  icon: shield
+  color: red
+
+runs:
+  using: composite
+  steps:
+    - name: Run governance report
+      shell: bash
+      run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}"
+
+    - name: Publish governance summary
+      if: ${{ inputs.summary == 'true' }}
+      shell: bash
+      run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload governance artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: .code-warden-report.json
+        if-no-files-found: error
+        retention-days: 90

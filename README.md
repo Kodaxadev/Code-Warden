@@ -231,6 +231,20 @@ The report covers file length, hardcoded credentials, behavioral tests, source i
 
 ## CI Integration
 
+Use Code-Warden as a GitHub Action:
+
+```yaml
+- name: Code-Warden Governance Gate
+  uses: Kodaxadev/Code-Warden@v3
+  with:
+    path: .
+```
+
+The action writes `.code-warden-report.json`, appends a Markdown summary to the
+workflow run, and uploads the report as an artifact by default.
+
+Or download a pinned release directly:
+
 ```yaml
 - name: Install Code-Warden
   run: |

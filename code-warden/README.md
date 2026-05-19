@@ -57,6 +57,21 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 
 See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
 
+### GitHub Action
+
+Use the repository action when you want the shortest CI setup:
+
+```yaml
+- name: Code-Warden Governance Gate
+  uses: Kodaxadev/Code-Warden@v3
+  with:
+    path: .
+```
+
+The action runs `tools/governance-report.js`, writes
+`.code-warden-report.json`, appends a Markdown summary, and uploads the report
+artifact by default.
+
 ## Install
 
 ```bash
