@@ -1,6 +1,6 @@
 {
   "name": "code-warden",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "Verifiable governance for AI-assisted development — checks, hooks, and evidence.",
   "main": "SKILL.md",
   "bin": {

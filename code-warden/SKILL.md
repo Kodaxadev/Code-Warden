@@ -12,9 +12,20 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 3.1.1
+  version: 3.3.2
   category: development-governance
   changelog: |
+    v3.3.2 (2026-05-19): Scanner/package cleanup. Generated, lock, and log
+      artifacts are skipped during scans, install manifests preserve final
+      install paths during atomic swaps, and release archives move out of source.
+    v3.3.1 (2026-05-16): EPERM-safe traversal and quickstart polish. Scanner
+      traversal handles restricted directories more defensively and package docs
+      emphasize npm-first install and report commands.
+    v3.3.0 (2026-05-16): npm package and CLI quickstart. Added `code-warden`
+      binary commands for init, doctor, report, list, hooks, and uninstall-hooks.
+    v3.2.0 (2026-05-15): Governance report artifact. Added
+      tools/governance-report.js for combined scanner, test, install-health, and
+      runtime-hook evidence.
     v3.1.1 (2026-05-15): Stabilization. Behavioral tests (8 scanner/hook pass/fail
       cases via node:test). Shared policy modules: lib/line-count.js, lib/secret-patterns.js,
       lib/file-collection.js, lib/config.js. Line-count off-by-one fixed (trailing newline).
@@ -54,7 +65,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v3.1.1
+# code-warden v3.3.2
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,

@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Patch release and generated release artifacts
+
+- **Decision**: Release the scanner/install-path cleanup as `v3.3.2` and keep generated release archives out of the source tree. GitHub release assets and npm package tarballs remain the distribution surfaces.
+- **Alternatives considered**:
+  - Leave the changes under `v3.3.1`. Rejected because scanner exclusions and install manifest path behavior change observable package behavior.
+  - Keep historical `code-warden-v*.zip` files committed at the repository root. Rejected because release assets already exist on GitHub releases, while committed archives create source clutter and invite stale package copies.
+  - Delete old tags. Rejected because tags are useful release history and are cheaper to preserve than recreate.
+- **Reasoning**: The verified working tree adds a behavioral test for generated-directory, lockfile, and log exclusion, and fixes atomic install manifests to report the final install path. These are patch-level fixes under the existing package API. Generated archives should be reproducible from tags or release automation rather than maintained as source files.
+- **Files affected**: `package.json`, `SKILL.md`, `README.md`, `DECISIONS.md`, `.gitignore`, root `code-warden-v*.zip` artifacts
+
+---
+
 ## 2026-05-15 - Codex partial hook enforcement — apply_patch and Bash (ADR)
 
 - **Decision**: Ship Codex hook support as "partial hard enforcement" covering `apply_patch` and `Bash` tool calls. Claude hooks are moved to `tools/hooks/claude/`. Codex hooks live at `tools/hooks/codex/`. Each runtime gets its own installer/uninstaller. `install.js` dispatches dynamically via `require('./tools/hooks/${id}/install-hooks')`.

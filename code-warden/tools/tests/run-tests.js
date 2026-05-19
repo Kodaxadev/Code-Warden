@@ -37,6 +37,7 @@ const { spawnSync } = require('node:child_process');
 const path          = require('node:path');
 const fs            = require('node:fs');
 const os            = require('node:os');
+const { collectFiles } = require('../lib/file-collection');
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -69,6 +70,10 @@ function makeSecretContent() {
     `const KEY = '${makeFakeSecret()}';`,
     'module.exports = { KEY };',
   ].join('\n') + '\n';
+}
+
+function makeFakeDatabaseUrl() {
+  return ['postgres', '://', 'user', ':', 'pass', '@example.invalid/db'].join('');
 }
 
 /** Generate content that exceeds the 400-line limit. */
@@ -142,6 +147,25 @@ test('verify-secrets: secret file exits 1', () => {
     assert.ok(stderr.includes('[FAIL]'), 'expected [FAIL] in stderr');
   } finally {
     fs.rmSync(tmp, { force: true });
+  }
+});
+
+test('file collection: skips generated dirs, lockfiles, and logs', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `cw-scan-${process.pid}-`));
+  try {
+    fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(root, '.astro'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'src', 'app.js'), "'use strict';\n");
+    fs.writeFileSync(path.join(root, '.astro', 'content.d.ts'), 'generated\n');
+    fs.writeFileSync(path.join(root, 'pnpm-lock.yaml'), 'lock\n');
+    fs.writeFileSync(path.join(root, 'dev-server.log'), `${makeFakeDatabaseUrl()}\n`);
+
+    const files = [];
+    collectFiles(root, files);
+    const relative = files.map(file => path.relative(root, file)).sort();
+    assert.deepEqual(relative, [path.join('src', 'app.js')]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 

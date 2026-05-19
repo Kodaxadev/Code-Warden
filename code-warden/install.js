@@ -66,14 +66,14 @@ function copyRecursive(src, dest) {
 // Install manifest (.code-warden-install.json written into each install dir)
 // ---------------------------------------------------------------------------
 
-function writeManifest(destDir, target) {
+function writeManifest(destDir, target, installPath = destDir) {
   const manifest = {
     skill:       SKILL_NAME,
     version:     VERSION,
     target:      target.id,
     format:      target.format,
     installedAt: new Date().toISOString(),
-    installPath: destDir,
+    installPath,
   };
   fs.writeFileSync(
     path.join(destDir, '.code-warden-install.json'),
@@ -118,7 +118,7 @@ function installTarget(target, dryRun) {
     // Stage into temp dir first
     fs.mkdirSync(tmpDir, { recursive: true });
     copyRecursive(SOURCE_DIR, tmpDir);
-    writeManifest(tmpDir, target);
+    writeManifest(tmpDir, target, destDir);
 
     // Swap: remove old, rename temp into place
     if (fs.existsSync(destDir)) fs.rmSync(destDir, { recursive: true, force: true });

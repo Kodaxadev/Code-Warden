@@ -1,2 +1,5 @@
 node_modules/
 .code-warden-report.json
+.claude/
+code-warden-v*.zip
+code-warden-*.tgz

@@ -35,11 +35,11 @@ The report runs all checks in a single pass (file length, secrets, behavioral te
 ```json
 {
   "tool": "code-warden",
-  "version": "3.2.0",
+  "version": "3.3.2",
   "checks": {
     "fileLength":      { "status": "pass", "filesScanned": 34, "violations": 0 },
     "secrets":         { "status": "pass", "filesScanned": 34, "violations": 0 },
-    "behavioralTests": { "status": "pass", "tests": 8, "failures": 0 },
+    "behavioralTests": { "status": "pass", "tests": 9, "failures": 0 },
     "installHealth":   { "status": "pass" }
   },
   "result": "pass"
@@ -52,7 +52,7 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 |-------|--------|---------|
 | File length | PASS | 34 files scanned, 0 violations |
 | Hardcoded credentials | PASS | 34 files scanned, 0 violations |
-| Behavioral tests | PASS | 8 tests, 0 failures |
+| Behavioral tests | PASS | 9 tests, 0 failures |
 | Install health | PASS | All source files present |
 
 See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
@@ -114,7 +114,7 @@ npm run install-auto    # node install.js
 npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
-npm run test            # behavioral tests (8 scanner/hook pass/fail cases)
+npm run test            # behavioral tests (9 scanner/hook pass/fail cases)
 npm run ci              # lint + secrets + test + doctor
 ```
 

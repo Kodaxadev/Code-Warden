@@ -12,7 +12,24 @@
 const fs   = require('fs');
 const path = require('path');
 
-const SKIP_DIRS = new Set(['node_modules', '.git', 'target', 'dist', '.next']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'target',
+  'dist',
+  '.next',
+  '.astro',
+  'coverage',
+  'build',
+]);
+
+const SKIP_NAMES = new Set([
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'bun.lock',
+  'bun.lockb',
+]);
 
 const SKIP_EXTS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp',
@@ -20,7 +37,7 @@ const SKIP_EXTS = new Set([
   '.dll', '.exe', '.bin', '.so', '.dylib',
   '.pdf', '.woff', '.woff2', '.ttf', '.eot', '.otf',
   '.mp4', '.mp3', '.wav', '.ogg', '.avi', '.mov',
-  '.map', '.lock',
+  '.map', '.lock', '.log',
 ]);
 
 /**
@@ -39,7 +56,10 @@ function collectFiles(dir, results) {
     try { stat = fs.statSync(full); } catch { continue; }
     if (stat.isDirectory()) {
       collectFiles(full, results);
-    } else if (!SKIP_EXTS.has(path.extname(entry).toLowerCase())) {
+    } else if (
+      !SKIP_NAMES.has(entry) &&
+      !SKIP_EXTS.has(path.extname(entry).toLowerCase())
+    ) {
       results.push(full);
     }
   }
@@ -66,10 +86,14 @@ function expandPaths(args, toolName) {
       console.error(`Error: path not found: ${arg}`);
       continue;
     }
-    if (fs.statSync(arg).isDirectory()) collectFiles(arg, files);
-    else files.push(arg);
+    const stat = fs.statSync(arg);
+    const name = path.basename(arg);
+    if (stat.isDirectory()) collectFiles(arg, files);
+    else if (!SKIP_NAMES.has(name) && !SKIP_EXTS.has(path.extname(name).toLowerCase())) {
+      files.push(arg);
+    }
   }
   return files;
 }
 
-module.exports = { collectFiles, expandPaths, SKIP_DIRS, SKIP_EXTS };
+module.exports = { collectFiles, expandPaths, SKIP_DIRS, SKIP_EXTS, SKIP_NAMES };
