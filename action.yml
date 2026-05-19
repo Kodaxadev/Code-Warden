@@ -53,3 +53,4 @@ runs:
         path: ${{ steps.report-path.outputs.path }}
         if-no-files-found: error
         retention-days: 90
+        include-hidden-files: true
