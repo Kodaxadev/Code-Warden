@@ -169,6 +169,52 @@ test('file collection: skips generated dirs, lockfiles, and logs', () => {
   }
 });
 
+test('secret scanner: reports source location without secret text', () => {
+  const { scanForSecrets } = require('../lib/secret-patterns');
+  const content = [
+    "'use strict';",
+    'const label = "safe";',
+    `const KEY = '${makeFakeSecret()}';`,
+  ].join('\n');
+
+  const hit = scanForSecrets(content);
+  assert.equal(hit.label, 'OpenAI key');
+  assert.equal(hit.line, 3);
+  assert.equal(hit.column, 14);
+  assert.equal(Object.hasOwn(hit, 'match'), false, 'secret match text must not be returned');
+});
+
+test('sarif formatter: emits source-located findings without secret text', () => {
+  const { formatSarif } = require('../lib/sarif');
+  const report = {
+    tool: 'code-warden',
+    version: '0.0.0-test',
+    checks: {
+      fileLength: {
+        status: 'fail',
+        details: [{ file: 'src/too-long.js', lines: 405, limit: 400 }],
+      },
+      secrets: {
+        status: 'fail',
+        details: [{ file: 'src/secret.js', pattern: 'OpenAI key', line: 3, column: 14 }],
+      },
+    },
+  };
+
+  const sarif = JSON.parse(formatSarif(report));
+  assert.equal(sarif.version, '2.1.0');
+  assert.equal(sarif.runs[0].tool.driver.name, 'Code-Warden');
+  assert.equal(sarif.runs[0].results.length, 2);
+  assert.deepEqual(
+    sarif.runs[0].results.map(result => result.ruleId),
+    ['CW001/max-file-length', 'CW002/hardcoded-credential']
+  );
+  assert.equal(sarif.runs[0].results[0].locations[0].physicalLocation.region.startLine, 401);
+  assert.equal(sarif.runs[0].results[1].locations[0].physicalLocation.region.startLine, 3);
+  assert.equal(sarif.runs[0].results[1].locations[0].physicalLocation.region.startColumn, 14);
+  assert.equal(JSON.stringify(sarif).includes(makeFakeSecret()), false);
+});
+
 test('external smoke helper: exposes CLI help', () => {
   const { code, stdout } = runCLI(path.join(TOOLS, 'smoke-npx.js'), ['--help']);
   assert.equal(code, 0, 'expected smoke helper help to exit 0');

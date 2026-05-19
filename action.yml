@@ -18,11 +18,26 @@ inputs:
     description: Artifact name for the governance report.
     required: false
     default: code-warden-report
+  sarif:
+    description: Upload source-located findings to GitHub Code Scanning.
+    required: false
+    default: 'false'
+  sarif-file:
+    description: SARIF output filename, relative to the workflow workspace.
+    required: false
+    default: code-warden.sarif
+  sarif-category:
+    description: Code scanning category for Code-Warden SARIF results.
+    required: false
+    default: code-warden
 
 outputs:
   report-path:
     description: Path to the generated governance report.
     value: ${{ steps.report-path.outputs.path }}
+  sarif-path:
+    description: Path to the generated SARIF report.
+    value: ${{ steps.sarif-path.outputs.path }}
 
 branding:
   icon: shield
@@ -36,17 +51,38 @@ runs:
       shell: bash
       run: echo "path=${GITHUB_WORKSPACE}/.code-warden-report.json" >> "$GITHUB_OUTPUT"
 
+    - name: Resolve SARIF path
+      id: sarif-path
+      shell: bash
+      run: echo "path=${GITHUB_WORKSPACE}/${{ inputs.sarif-file }}" >> "$GITHUB_OUTPUT"
+
     - name: Run governance report
+      id: governance
+      continue-on-error: true
       shell: bash
       run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}"
 
     - name: Publish governance summary
-      if: ${{ inputs.summary == 'true' }}
+      if: ${{ always() && inputs.summary == 'true' }}
       shell: bash
-      run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md >> "$GITHUB_STEP_SUMMARY"
+      run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md >> "$GITHUB_STEP_SUMMARY" || true
+
+    - name: Generate SARIF report
+      if: ${{ always() && inputs.sarif == 'true' }}
+      shell: bash
+      run: |
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=sarif > "${{ steps.sarif-path.outputs.path }}" || true
+        test -s "${{ steps.sarif-path.outputs.path }}"
+
+    - name: Upload SARIF report
+      if: ${{ always() && inputs.sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.sarif-path.outputs.path }}
+        category: ${{ inputs.sarif-category }}
 
     - name: Upload governance artifact
-      if: ${{ inputs.upload-artifact == 'true' }}
+      if: ${{ always() && inputs.upload-artifact == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact-name }}
@@ -54,3 +90,8 @@ runs:
         if-no-files-found: error
         retention-days: 90
         include-hidden-files: true
+
+    - name: Enforce governance result
+      if: ${{ steps.governance.outcome == 'failure' }}
+      shell: bash
+      run: exit 1

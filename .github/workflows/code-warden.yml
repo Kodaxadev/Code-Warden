@@ -13,6 +13,9 @@ jobs:
   quality-gate:
     name: Code-Warden Quality Gate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout
@@ -30,6 +33,8 @@ jobs:
         with:
           path: code-warden
           artifact-name: code-warden-report
+          sarif: 'true'
+          sarif-file: code-warden.sarif
 
       - name: External npx smoke test
         working-directory: code-warden

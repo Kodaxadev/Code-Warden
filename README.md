@@ -165,6 +165,7 @@ Supports Claude Code, Cursor, Warp, OpenAI Codex, Windsurf, and generic agent ru
 code-warden init              # install to detected AI runtimes
 code-warden report            # generate governance report
 code-warden report --format=md # Markdown output (pipe to PR summary)
+code-warden report --format=sarif # SARIF output for Code Scanning
 code-warden doctor            # verify source + install health
 code-warden list              # show detected runtimes
 code-warden hooks claude      # install Claude Code PreToolUse hooks
@@ -225,9 +226,16 @@ Code-Warden produces a machine-readable governance report — verifiable evidenc
 ```bash
 node tools/governance-report.js .              # writes .code-warden-report.json
 node tools/governance-report.js . --format=md  # Markdown table for PR summaries
+node tools/governance-report.js . --format=sarif # SARIF for source-located findings
 ```
 
 The report covers file length, hardcoded credentials, behavioral tests, source integrity, and runtime hook status in a single pass. In CI, it pipes directly into `$GITHUB_STEP_SUMMARY` so every PR shows what was checked.
+
+SARIF output is intentionally narrower than the JSON report: it includes only
+findings with source locations (`CW001/max-file-length` and
+`CW002/hardcoded-credential`). Behavioral tests, install health, runtime hook
+state, and session governance remain in JSON/Markdown because they are
+workflow evidence, not source-code findings.
 
 ## CI Integration
 
@@ -242,6 +250,25 @@ Use Code-Warden as a GitHub Action:
 
 The action writes `.code-warden-report.json`, appends a Markdown summary to the
 workflow run, and uploads the report as an artifact by default.
+
+Enable GitHub Code Scanning annotations with SARIF:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+
+steps:
+  - uses: actions/checkout@v4
+  - name: Code-Warden Governance Gate
+    uses: Kodaxadev/Code-Warden@v3
+    with:
+      path: .
+      sarif: 'true'
+```
+
+The action uploads SARIF through `github/codeql-action/upload-sarif@v3` and
+still fails the job when the governance report fails.
 
 Or download a pinned release directly:
 

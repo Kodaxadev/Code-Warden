@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - SARIF is source findings, JSON remains governance evidence
+
+- **Decision**: Add `--format=sarif` and optional GitHub Action SARIF upload for source-located findings only: max file length and hardcoded credentials.
+- **Alternatives considered**:
+  - Encode behavioral tests, install health, runtime hooks, and session gates as SARIF results. Rejected because those checks do not identify a source file region and would create noisy Code Scanning alerts.
+  - Replace the JSON governance report with SARIF. Rejected because SARIF is optimized for code scanning alerts, while Code-Warden also needs audit evidence for tests, installer health, runtime hooks, and session governance.
+  - Upload SARIF only after a passing governance run. Rejected because failing findings are exactly when Code Scanning annotations are most useful.
+- **Reasoning**: GitHub Code Scanning accepts valid SARIF 2.1.0 and uploads are performed with `github/codeql-action/upload-sarif`, which requires `security-events: write` in the workflow permissions. Code-Warden should map only location-backed source findings into SARIF and keep the broader governance artifact in JSON/Markdown. Sources: https://docs.github.com/en/code-security/reference/code-scanning/sarif-files/sarif-support-for-code-scanning and https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/integrate-with-existing-tools/uploading-a-sarif-file-to-github
+- **Files affected**: `tools/governance-report.js`, `tools/lib/secret-patterns.js`, `tools/lib/sarif.js`, `tools/tests/run-tests.js`, `action.yml`, `.github/workflows/code-warden.yml`, `README.md`, `code-warden/README.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Composite GitHub Action as first reusable CI entrypoint
 
 - **Decision**: Add a root `action.yml` composite action that runs the packaged Code-Warden governance report, writes a Markdown summary, and uploads the JSON report artifact. Dogfood it in the repository's own quality workflow.

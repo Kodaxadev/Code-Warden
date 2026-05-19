@@ -44,14 +44,26 @@ const SECRET_PATTERNS = [
  * Scan a content string against all secret patterns.
  *
  * @param {string} content
- * @returns {{ label: string } | null} First matching pattern label, or null if clean.
+ * @returns {{ label: string, line: number, column: number } | null} First
+ * matching pattern label and location, or null if clean.
  */
 function scanForSecrets(content) {
   if (typeof content !== 'string' || content.length === 0) return null;
   for (const { label, re } of SECRET_PATTERNS) {
-    if (re.test(content)) return { label };
+    re.lastIndex = 0;
+    const match = re.exec(content);
+    if (!match) continue;
+    return { label, ...locationForIndex(content, match.index) };
   }
   return null;
+}
+
+function locationForIndex(content, index) {
+  const before = content.slice(0, index);
+  const line = before.split('\n').length;
+  const lastNewline = before.lastIndexOf('\n');
+  const column = index - lastNewline;
+  return { line, column };
 }
 
 module.exports = { SECRET_PATTERNS, scanForSecrets };

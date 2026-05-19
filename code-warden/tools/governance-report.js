@@ -9,6 +9,7 @@ const { countLines }     = require('./lib/line-count');
 const { collectFiles }   = require('./lib/file-collection');
 const { scanForSecrets } = require('./lib/secret-patterns');
 const { loadConfig }     = require('./lib/config');
+const { formatSarif }    = require('./lib/sarif');
 
 const ROOT    = path.join(__dirname, '..');
 const PKG     = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -55,7 +56,8 @@ function runScans(scanPath) {
   }
 
   const files = [];
-  if (fs.statSync(resolved).isDirectory()) {
+  const scanRootIsDirectory = fs.statSync(resolved).isDirectory();
+  if (scanRootIsDirectory) {
     collectFiles(resolved, files);
   } else {
     files.push(resolved);
@@ -68,7 +70,7 @@ function runScans(scanPath) {
     let content;
     try { content = fs.readFileSync(f, 'utf8'); } catch { continue; }
 
-    const rel = path.relative(resolved, f);
+    const rel = scanRootIsDirectory ? path.relative(resolved, f) : path.basename(f);
 
     const lineCount = countLines(content);
     if (lineCount > maxFileLength) {
@@ -77,7 +79,7 @@ function runScans(scanPath) {
 
     const hit = scanForSecrets(content);
     if (hit) {
-      secretViolations.push({ file: rel, pattern: hit.label });
+      secretViolations.push({ file: rel, pattern: hit.label, line: hit.line, column: hit.column });
     }
   }
 
@@ -291,6 +293,8 @@ if (format === 'md') {
   console.log(formatMarkdown(report));
 } else if (format === 'json') {
   console.log(JSON.stringify(report, null, 2));
+} else if (format === 'sarif') {
+  console.log(formatSarif(report));
 } else {
   const json = JSON.stringify(report, null, 2);
   const outPath = path.resolve('.code-warden-report.json');

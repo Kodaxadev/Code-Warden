@@ -28,6 +28,7 @@ Generate a machine-readable governance report that can be stored in CI, attached
 node tools/governance-report.js .                   # write .code-warden-report.json + summary
 node tools/governance-report.js . --format=json      # JSON to stdout
 node tools/governance-report.js . --format=md        # Markdown to stdout
+node tools/governance-report.js . --format=sarif     # SARIF to stdout
 ```
 
 The report runs all checks in a single pass (file length, secrets, behavioral tests, source integrity) and produces a structured artifact:
@@ -57,6 +58,11 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 
 See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
 
+SARIF output is intentionally limited to source-located findings:
+`CW001/max-file-length` and `CW002/hardcoded-credential`. The JSON report
+remains the canonical governance artifact for behavioral tests, install health,
+runtime hook registration, and session gate evidence.
+
 ### GitHub Action
 
 Use the repository action when you want the shortest CI setup:
@@ -71,6 +77,23 @@ Use the repository action when you want the shortest CI setup:
 The action runs `tools/governance-report.js`, writes
 `.code-warden-report.json`, appends a Markdown summary, and uploads the report
 artifact by default.
+
+Enable GitHub Code Scanning annotations by adding `sarif: 'true'` and granting
+the workflow `security-events: write` permission:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+
+steps:
+  - uses: actions/checkout@v4
+  - name: Code-Warden Governance Gate
+    uses: Kodaxadev/Code-Warden@v3
+    with:
+      path: .
+      sarif: 'true'
+```
 
 ## Install
 
@@ -92,6 +115,7 @@ code-warden init
 | `code-warden init` | Install to all detected AI runtimes |
 | `code-warden report` | Generate governance report |
 | `code-warden report --format=md` | Markdown output for PR summaries |
+| `code-warden report --format=sarif` | SARIF output for Code Scanning |
 | `code-warden doctor` | Verify source integrity + install health |
 | `code-warden list` | Show detected runtimes |
 | `code-warden hooks claude` | Install Claude Code PreToolUse hooks |
