@@ -42,8 +42,9 @@ The report runs all checks in a single pass (file length, secrets, behavioral te
   "checks": {
     "fileLength":      { "status": "pass", "filesScanned": 44, "violations": 0 },
     "secrets":         { "status": "pass", "filesScanned": 44, "violations": 0 },
-    "behavioralTests": { "status": "pass", "tests": 17, "failures": 0 },
-    "installHealth":   { "status": "pass" }
+    "behavioralTests": { "status": "pass", "tests": 21, "failures": 0 },
+    "installHealth":   { "status": "pass" },
+    "riskPolicy":      { "status": "pass" }
   },
   "result": "pass"
 }
@@ -55,8 +56,9 @@ In CI, the Markdown format pipes directly into `$GITHUB_STEP_SUMMARY` for PR-vis
 |-------|--------|---------|
 | File length | PASS | 44 files scanned, 0 violations |
 | Hardcoded credentials | PASS | 44 files scanned, 0 violations |
-| Behavioral tests | PASS | 17 tests, 0 failures |
+| Behavioral tests | PASS | 21 tests, 0 failures |
 | Install health | PASS | All source files present |
+| Risk policy | PASS | 7 governed actions |
 
 See [`templates/ci/github-actions.yml`](templates/ci/github-actions.yml) for the full CI template with artifact upload.
 
@@ -173,7 +175,7 @@ npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
 npm run smoke:npx       # verify published package from a clean temp directory
-npm run test            # behavioral tests (17 scanner/report/receipt/hook cases)
+npm run test            # behavioral tests (21 scanner/report/receipt/risk/hook cases)
 npm run ci              # lint + secrets + test + doctor
 ```
 
@@ -248,8 +250,13 @@ All thresholds in [`codewarden.json`](codewarden.json):
 | `thresholds.pre_flight_trigger_lines` | 150 | Lines before a pre-flight manifest is required |
 | `thresholds.human_checkpoint_files` | 2 | Files touched before `[AWAITING CONFIRMATION]` is required |
 | `safety.exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | Paths excluded from rollback-plan rule |
+| `risk_policy.actions` | 7 governed actions | Maps action classes to `low`, `medium`, `high`, or `blocked` |
 
 See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
+
+Default risk policy treats read-only context gathering as `low`, file edits as
+`medium`, dependency/network/release operations as `high`, and destructive or
+secret-bearing actions as `blocked` until explicitly scoped.
 
 ## Reference Files
 

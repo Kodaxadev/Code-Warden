@@ -50,7 +50,7 @@ If you run long Claude Code, Codex, or Cursor sessions — multi-file refactors,
 At its core, Code-Warden is a governance contract:
 - The agent states architecture context before acting.
 - The agent declares scope and patch order before edits.
-- The repo verifies file size, secrets, tests, install health, runtime hooks, and receipt artifacts.
+- The repo verifies file size, secrets, tests, install health, risk policy, runtime hooks, and receipt artifacts.
 - The workflow keeps receipts, JSON, Markdown, SARIF, and release evidence outside chat memory.
 
 **Built for developers who:**
@@ -261,6 +261,11 @@ code-warden receipt --validate=code-warden-receipt.json
 Receipts deliberately start as drafts with `canProveCompliance: false`; they
 become valid only when the required evidence is filled in.
 
+Reports also include risk policy evidence from `codewarden.json`. The default
+policy marks read-only work as `low`, file edits as `medium`,
+dependency/network/release operations as `high`, and destructive or
+secret-bearing actions as `blocked`.
+
 ## CI Integration
 
 Use Code-Warden as a GitHub Action:
@@ -351,6 +356,7 @@ repositories.
 | `references/anti-drift.md` | Anchor Check, Session Scoping, Drift Trigger |
 | `references/operations.md` | Verification evidence, git hygiene, dependency control |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
+| `tools/lib/risk-policy.js` | Risk tier defaults, config merge, and validation |
 | `tools/receipt.js` | Governance receipt template and validation CLI |
 
 ## Version

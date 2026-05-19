@@ -15,10 +15,10 @@ metadata:
   version: 3.3.2
   category: development-governance
   changelog: |
-    Unreleased: Governance receipts, SARIF output, and Code Scanning integration.
-      Added receipt --template, receipt --validate, report --format=sarif,
-      report --out=<file>, optional GitHub Code Scanning upload, current GitHub
-      Actions pins, and expanded behavioral tests.
+    Unreleased: Governance receipts, risk policy, SARIF output, and Code Scanning
+      integration. Added receipt --template, receipt --validate, configurable
+      risk_policy actions, report --format=sarif, report --out=<file>, optional
+      GitHub Code Scanning upload, current GitHub Actions pins, and expanded tests.
     v3.3.2 (2026-05-19): Scanner/package cleanup. Generated, lock, and log
       artifacts are skipped during scans, install manifests preserve final
       install paths during atomic swaps, and release archives move out of source.
@@ -143,6 +143,7 @@ information above.
 - **Concerns**: One responsibility per file. Support human auditing.
 - **Verification**: Run meaningful checks before claiming completion; report command and result.
 - **Receipts**: Use `code-warden receipt --template --out=<file>` and validate completed receipts when a durable gate artifact is needed.
+- **Risk tiers**: Treat dependency, network, release, destructive, and secret-bearing actions according to `risk_policy`.
 - **Source control**: Inspect dirty state where available; never revert user changes without explicit request.
 - **Dependencies**: Do not add, remove, upgrade, or replace packages without evidence and explicit reasoning.
 - **Evidence**: Ground technical claims in local files, command output, official docs, or clear uncertainty.

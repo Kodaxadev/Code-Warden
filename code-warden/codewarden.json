@@ -10,5 +10,37 @@
       "docs/",
       "scripts/"
     ]
+  },
+  "risk_policy": {
+    "actions": {
+      "read_only": {
+        "tier": "low",
+        "description": "Inspect files, run local read-only commands, or gather context."
+      },
+      "file_edit": {
+        "tier": "medium",
+        "description": "Create or modify declared in-scope files."
+      },
+      "dependency_change": {
+        "tier": "high",
+        "description": "Add, remove, upgrade, or replace project dependencies."
+      },
+      "external_network": {
+        "tier": "high",
+        "description": "Transmit data to external services or fetch version-specific evidence."
+      },
+      "release_publish": {
+        "tier": "high",
+        "description": "Publish packages, tags, releases, or deployment artifacts."
+      },
+      "destructive_command": {
+        "tier": "blocked",
+        "description": "Delete, reset, overwrite, or force-push repository state."
+      },
+      "secret_exposure": {
+        "tier": "blocked",
+        "description": "Print, store, transmit, or commit credentials or private tokens."
+      }
+    }
   }
 }

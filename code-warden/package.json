@@ -33,7 +33,7 @@
     "install-list": "node install.js --list",
     "install-doctor": "node install.js --doctor",
     "smoke:npx": "node tools/smoke-npx.js",
-    "test": "node tools/tests/run-tests.js",
+    "test": "node tools/tests/run-all-tests.js",
     "ci": "npm run lint && npm run check-secrets && npm run test && node install.js --doctor"
   },
   "engines": {

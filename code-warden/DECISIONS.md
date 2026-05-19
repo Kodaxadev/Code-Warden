@@ -29,6 +29,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Risk tiers separate action risk from patch size
+
+- **Decision**: Add configurable `risk_policy` actions and include risk policy validation in governance reports.
+- **Alternatives considered**:
+  - Reuse only Scope Gate blast radius classes. Rejected because blast radius describes patch impact, while action risk also covers dependency changes, network calls, release publishing, destructive commands, and secret exposure.
+  - Add runtime blocking immediately. Rejected because supported enforcement surfaces differ by agent runtime; reporting and policy validation should land before claiming hard enforcement.
+  - Keep risk levels implicit in prose. Rejected because machine-readable reports need a stable action-to-tier map.
+- **Reasoning**: OpenHands documents confirmation policies and a security analyzer that evaluate agent actions with risk levels before execution. Code-Warden should use the same general pattern while keeping its own governance vocabulary: `low`, `medium`, `high`, and `blocked` tiers tied to declared action classes. Source: https://docs.openhands.dev/sdk/guides/security
+- **Files affected**: `codewarden.json`, `package.json`, `tools/lib/risk-policy.js`, `tools/tests/run-all-tests.js`, `tools/tests/risk-policy-tests.js`, `tools/governance-report.js`, `README.md`, `code-warden/README.md`, `code-warden/SKILL.md`, `CHANGELOG.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Governance-first content positioning
 
 - **Decision**: Refresh public and package docs so Scope Gates, Plan Gates, blast radius, and verification remain the central product story while SARIF, CI, and npm packaging are presented as evidence layers.

@@ -10,6 +10,7 @@ const { collectFiles }   = require('./lib/file-collection');
 const { scanForSecrets } = require('./lib/secret-patterns');
 const { loadConfig }     = require('./lib/config');
 const { formatSarif }    = require('./lib/sarif');
+const { loadRiskPolicy } = require('./lib/risk-policy');
 
 const ROOT    = path.join(__dirname, '..');
 const PKG     = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -110,7 +111,8 @@ function checkTests() {
     return { status: 'skip', tests: 0, failures: 0 };
   }
 
-  const testScript = path.join(__dirname, 'tests', 'run-tests.js');
+  const testScript = process.env.CODE_WARDEN_TEST_SCRIPT ||
+    path.join(__dirname, 'tests', 'run-all-tests.js');
   if (!fs.existsSync(testScript)) {
     return { status: 'skip', tests: 0, failures: 0 };
   }
@@ -122,13 +124,13 @@ function checkTests() {
   });
 
   const out = (r.stdout || '') + (r.stderr || '');
-  const passMatch = out.match(/pass\s+(\d+)/);
-  const failMatch = out.match(/fail\s+(\d+)/);
+  const passMatches = [...out.matchAll(/pass\s+(\d+)/g)];
+  const failMatches = [...out.matchAll(/fail\s+(\d+)/g)];
 
   let passed, failed;
-  if (passMatch || failMatch) {
-    passed = parseInt(passMatch?.[1] || '0', 10);
-    failed = parseInt(failMatch?.[1] || '0', 10);
+  if (passMatches.length > 0 || failMatches.length > 0) {
+    passed = passMatches.reduce((sum, m) => sum + parseInt(m[1], 10), 0);
+    failed = failMatches.reduce((sum, m) => sum + parseInt(m[1], 10), 0);
   } else {
     passed = (out.match(/^(?:ok \d+|✔)/gm) || []).length;
     failed = (out.match(/^(?:not ok \d+|✖)/gm) || []).length;
@@ -216,8 +218,9 @@ function generateReport(scanPath) {
   const behavioralTests = checkTests();
   const installHealth = checkInstallHealth();
   const runtimeHooks = checkRuntimeHooks();
+  const riskPolicy = loadRiskPolicy();
 
-  const checks = { fileLength, secrets, behavioralTests, installHealth };
+  const checks = { fileLength, secrets, behavioralTests, installHealth, riskPolicy };
   const result = Object.values(checks).every(c => c.status === 'pass' || c.status === 'skip')
     ? 'pass' : 'fail';
 
@@ -231,6 +234,10 @@ function generateReport(scanPath) {
       scopeGate: 'session_only',
       planGate: 'session_only',
       runtimeHooks,
+      riskPolicy: {
+        tiers: riskPolicy.tiers,
+        actions: riskPolicy.actions,
+      },
     },
     result,
   };
@@ -263,6 +270,7 @@ function formatMarkdown(report) {
     `| Hardcoded credentials | ${badge(report.checks.secrets.status)} | ${report.checks.secrets.filesScanned} files scanned, ${report.checks.secrets.violations} violations |`,
     `| Behavioral tests | ${badge(report.checks.behavioralTests.status)} | ${report.checks.behavioralTests.tests} tests, ${report.checks.behavioralTests.failures} failures |`,
     `| Install health | ${badge(report.checks.installHealth.status)} | ${healthDetail} |`,
+    `| Risk policy | ${badge(report.checks.riskPolicy.status)} | ${Object.keys(report.checks.riskPolicy.actions).length} governed actions |`,
     `| Runtime hooks | — | Claude: ${hookLabel('claude')} / Codex: ${hookLabel('codex')} |`,
     '',
     `**Result:** ${report.result === 'pass' ? 'All governed checks passed.' : 'One or more checks failed.'}`,
@@ -284,6 +292,7 @@ function formatSummary(report) {
     `secrets:${c.secrets.status}`,
     `tests:${c.behavioralTests.status}`,
     `health:${c.installHealth.status}`,
+    `risk:${c.riskPolicy.status}`,
   ];
   return `[CodeWarden] Governance report: ${report.result.toUpperCase()} (${parts.join(', ')})`;
 }
