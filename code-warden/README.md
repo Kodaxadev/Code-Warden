@@ -200,6 +200,20 @@ See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
 > npm may prefer the local package context. Test from a separate directory for
 > the same behavior users will see.
 
+## Release Process
+
+Code-Warden releases are tag-driven from GitHub Actions:
+
+1. The workflow checks that `package.json` matches the pushed `vX.Y.Z` tag.
+2. `npm run ci` verifies lint, secrets, behavioral tests, and install health.
+3. `npm publish --dry-run --access public` verifies the package contents.
+4. npm trusted publishing publishes the package without a long-lived npm token.
+5. The workflow creates a GitHub release and uploads `code-warden-vX.Y.Z.zip`.
+
+Configure npm trusted publishing for the repository before relying on the
+release workflow. Manual publishing remains a fallback, but it should be the
+exception because it does not provide the same CI-linked provenance story.
+
 ## Author
 
 Justin Davis — MIT License

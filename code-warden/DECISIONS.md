@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Tag-driven release automation and npm trusted publishing
+
+- **Decision**: Add a tag-triggered GitHub Actions release workflow for Code-Warden. The workflow validates the `vX.Y.Z` tag against `package.json`, runs `npm run ci`, performs `npm publish --dry-run --access public`, verifies the GitHub release does not already exist, publishes to npm through trusted publishing, then creates the GitHub release asset.
+- **Alternatives considered**:
+  - Continue manual npm and GitHub release publishing. Rejected because manual publishing lacks the same repeatable evidence trail and is easy to run from the wrong tree or with stale docs.
+  - Use a long-lived npm automation token. Rejected because npm trusted publishing supports GitHub Actions OIDC and avoids storing reusable publish credentials.
+  - Build release automation as a local PowerShell script first. Rejected because the trust boundary for public packages is the repository workflow, tag, and CI run, not one developer machine.
+- **Reasoning**: Code-Warden's product promise is verifiable governance. Release publication should therefore be traceable to a tag, workflow run, package version check, CI evidence, and npm provenance rather than relying on local manual commands.
+- **Files affected**: `.github/workflows/release.yml`, `README.md`, `code-warden/README.md`, `code-warden/templates/ci/github-actions.yml`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Patch release and generated release artifacts
 
 - **Decision**: Release the scanner/install-path cleanup as `v3.3.2` and keep generated release archives out of the source tree. GitHub release assets and npm package tarballs remain the distribution surfaces.

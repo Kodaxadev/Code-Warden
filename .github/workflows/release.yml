@@ -1,0 +1,86 @@
+name: Release Code-Warden
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish package and GitHub release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+          cache-dependency-path: code-warden/package.json
+
+      - name: Validate tag matches package version
+        working-directory: code-warden
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Package version $PACKAGE_VERSION does not match tag $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+      - name: Run governance gate
+        working-directory: code-warden
+        run: npm run ci
+
+      - name: Verify package contents
+        working-directory: code-warden
+        run: npm publish --dry-run --access public
+
+      - name: Check release does not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "GitHub release $GITHUB_REF_NAME already exists" >&2
+            exit 1
+          fi
+
+      - name: Publish to npm
+        working-directory: code-warden
+        run: npm publish --access public
+
+      - name: Build GitHub release asset
+        shell: bash
+        run: |
+          ASSET="code-warden-${GITHUB_REF_NAME}.zip"
+          cd code-warden
+          zip -qr "../${ASSET}" .
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          ASSET="code-warden-${GITHUB_REF_NAME}.zip"
+          gh release create "$GITHUB_REF_NAME" "$ASSET" \
+            --title "$GITHUB_REF_NAME - Code-Warden release" \
+            --notes "Automated release for ${GITHUB_REF_NAME}.
+
+          Verification:
+          - npm run ci
+          - npm publish --dry-run --access public
+          - npm publish --access public through npm trusted publishing"

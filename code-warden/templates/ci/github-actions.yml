@@ -40,7 +40,7 @@ on:
     branches: [main, master]
 
 env:
-  CODE_WARDEN_VERSION: v3.2.0
+  CODE_WARDEN_VERSION: v3.3.2
   CODE_WARDEN_PATH: .code-warden-ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 

@@ -4,7 +4,7 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.3.1-blue" alt="Version 3.3.1" />
+  <img src="https://img.shields.io/badge/version-3.3.2-blue" alt="Version 3.3.2" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
@@ -235,7 +235,7 @@ The report covers file length, hardcoded credentials, behavioral tests, source i
 - name: Install Code-Warden
   run: |
     curl -fsSL -o cw.zip \
-      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.2.0/code-warden-v3.2.0.zip
+      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.3.2/code-warden-v3.3.2.zip
     unzip -q cw.zip -d .code-warden-ci
 
 - name: Governance report
@@ -256,6 +256,17 @@ The report covers file length, hardcoded credentials, behavioral tests, source i
 
 Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templates/ci/github-actions.yml)
 
+## Release Trust
+
+Code-Warden releases are tag-driven. The release workflow verifies the package
+version matches the pushed tag, runs the governance gate, performs an npm
+publish dry run, publishes to npm through trusted publishing, creates a GitHub
+release, and uploads the versioned zip asset.
+
+Trusted publishing uses GitHub Actions OIDC instead of a long-lived npm token
+and lets npm attach provenance to public package publishes from public
+repositories.
+
 ## File Structure
 
 | File | Purpose |
@@ -274,7 +285,7 @@ Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templ
 
 ## Version
 
-v3.3.0 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
+v3.3.2 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
 
 ## Author
 
