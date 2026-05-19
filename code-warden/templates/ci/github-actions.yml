@@ -11,6 +11,7 @@
 #
 # What it produces:
 #   - .code-warden-report.json — machine-readable governance artifact
+#   - code-warden.sarif — optional GitHub Code Scanning upload
 #   - Markdown summary on the workflow run / PR (via GITHUB_STEP_SUMMARY)
 #   - Uploaded artifact for audit trail (90-day retention)
 #
@@ -48,6 +49,9 @@ jobs:
   code-warden:
     name: Code-Warden Quality Gate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout
@@ -72,6 +76,17 @@ jobs:
       - name: Publish governance summary
         if: always()
         run: node ${{ env.CODE_WARDEN_PATH }}/tools/governance-report.js . --format=md >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate SARIF report
+        if: always()
+        run: node ${{ env.CODE_WARDEN_PATH }}/tools/governance-report.js . --format=sarif --out=code-warden.sarif || true
+
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: code-warden.sarif
+          category: code-warden
 
       - name: Upload governance artifact
         if: always()

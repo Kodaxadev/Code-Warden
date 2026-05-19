@@ -100,8 +100,11 @@ function writeTmp(name, content) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function runCLI(scriptPath, args = []) {
-  const result = spawnSync(process.execPath, [scriptPath, ...args], { encoding: 'utf8' });
+function runCLI(scriptPath, args = [], options = {}) {
+  const result = spawnSync(process.execPath, [scriptPath, ...args], {
+    encoding: 'utf8',
+    env: { ...process.env, ...(options.env || {}) },
+  });
   return { code: result.status ?? result.signal, stdout: result.stdout || '', stderr: result.stderr || '' };
 }
 
@@ -213,6 +216,30 @@ test('sarif formatter: emits source-located findings without secret text', () =>
   assert.equal(sarif.runs[0].results[1].locations[0].physicalLocation.region.startLine, 3);
   assert.equal(sarif.runs[0].results[1].locations[0].physicalLocation.region.startColumn, 14);
   assert.equal(JSON.stringify(sarif).includes(makeFakeSecret()), false);
+});
+
+test('governance report: writes formatted output to --out path', () => {
+  const out = writeTmp('report.sarif', '');
+  try {
+    fs.rmSync(out, { force: true });
+    const { code, stdout } = runCLI(path.join(TOOLS, 'governance-report.js'), [
+      '.',
+      '--format=sarif',
+      `--out=${out}`,
+    ], { env: { CODE_WARDEN_SKIP_BEHAVIORAL_TESTS: '1' } });
+    assert.equal(code, 0, 'expected SARIF report with --out to exit 0');
+    assert.equal(stdout.trim(), `[CodeWarden] Report written to ${path.resolve(out)}`);
+    const parsed = JSON.parse(fs.readFileSync(out, 'utf8'));
+    assert.equal(parsed.version, '2.1.0');
+  } finally {
+    fs.rmSync(out, { force: true });
+  }
+});
+
+test('code-warden CLI help: documents SARIF and --out examples', () => {
+  const { code, stdout } = runCLI(path.join(ROOT, 'bin', 'code-warden.js'), ['--help']);
+  assert.equal(code, 0, 'expected CLI help to exit 0');
+  assert.match(stdout, /report --format=sarif --out=code-warden\.sarif/);
 });
 
 test('external smoke helper: exposes CLI help', () => {

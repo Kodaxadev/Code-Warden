@@ -29,6 +29,7 @@ node tools/governance-report.js .                   # write .code-warden-report.
 node tools/governance-report.js . --format=json      # JSON to stdout
 node tools/governance-report.js . --format=md        # Markdown to stdout
 node tools/governance-report.js . --format=sarif     # SARIF to stdout
+node tools/governance-report.js . --format=sarif --out=code-warden.sarif
 ```
 
 The report runs all checks in a single pass (file length, secrets, behavioral tests, source integrity) and produces a structured artifact:
@@ -116,6 +117,7 @@ code-warden init
 | `code-warden report` | Generate governance report |
 | `code-warden report --format=md` | Markdown output for PR summaries |
 | `code-warden report --format=sarif` | SARIF output for Code Scanning |
+| `code-warden report --format=sarif --out=code-warden.sarif` | Write SARIF to a file |
 | `code-warden doctor` | Verify source integrity + install health |
 | `code-warden list` | Show detected runtimes |
 | `code-warden hooks claude` | Install Claude Code PreToolUse hooks |

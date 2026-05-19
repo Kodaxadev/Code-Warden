@@ -22,9 +22,11 @@ const VERSION = PKG.version;
 function parseArgs(argv) {
   const args = argv.slice(2);
   const formatArg = args.find(a => a.startsWith('--format='));
+  const outArg = args.find(a => a.startsWith('--out='));
   const format = formatArg ? formatArg.split('=')[1] : null;
+  const out = outArg ? outArg.slice('--out='.length) : null;
   const scanPath = args.find(a => !a.startsWith('--')) || '.';
-  return { format, scanPath };
+  return { format, out, scanPath };
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +106,10 @@ function runScans(scanPath) {
 // ---------------------------------------------------------------------------
 
 function checkTests() {
+  if (process.env.CODE_WARDEN_SKIP_BEHAVIORAL_TESTS === '1') {
+    return { status: 'skip', tests: 0, failures: 0 };
+  }
+
   const testScript = path.join(__dirname, 'tests', 'run-tests.js');
   if (!fs.existsSync(testScript)) {
     return { status: 'skip', tests: 0, failures: 0 };
@@ -282,14 +288,30 @@ function formatSummary(report) {
   return `[CodeWarden] Governance report: ${report.result.toUpperCase()} (${parts.join(', ')})`;
 }
 
+function formatReport(report, format) {
+  if (format === 'md') return formatMarkdown(report);
+  if (format === 'json') return JSON.stringify(report, null, 2);
+  if (format === 'sarif') return formatSarif(report);
+  return JSON.stringify(report, null, 2);
+}
+
+function writeReport(outPath, content) {
+  const resolved = path.resolve(outPath);
+  fs.mkdirSync(path.dirname(resolved), { recursive: true });
+  fs.writeFileSync(resolved, content, 'utf8');
+  console.log(`[CodeWarden] Report written to ${resolved}`);
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-const { format, scanPath } = parseArgs(process.argv);
+const { format, out, scanPath } = parseArgs(process.argv);
 const report = generateReport(scanPath);
 
-if (format === 'md') {
+if (out) {
+  writeReport(out, formatReport(report, format));
+} else if (format === 'md') {
   console.log(formatMarkdown(report));
 } else if (format === 'json') {
   console.log(JSON.stringify(report, null, 2));

@@ -27,6 +27,7 @@ function usage() {
   console.log(`  npx code-warden init`);
   console.log(`  npx code-warden report`);
   console.log(`  npx code-warden report --format=md`);
+  console.log(`  npx code-warden report --format=sarif --out=code-warden.sarif`);
   console.log(`  npx code-warden hooks claude`);
 }
 

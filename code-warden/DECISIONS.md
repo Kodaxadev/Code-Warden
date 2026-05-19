@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Report output paths support CI artifacts directly
+
+- **Decision**: Add `--out=<file>` to `governance-report.js` and document it through the public `code-warden report` wrapper. Update the copyable CI template to generate a SARIF file and upload it to GitHub Code Scanning.
+- **Alternatives considered**:
+  - Keep relying on shell redirection. Rejected because redirects are harder to make cross-shell friendly in examples and do not create parent directories.
+  - Add SARIF only to the root composite action. Rejected because users copying the release-download template should get the same Code Scanning path.
+  - Add a separate `sarif` subcommand. Rejected because `report --format=sarif --out=...` keeps report generation in one CLI surface.
+- **Reasoning**: CI systems typically want report artifacts as files. A first-class output path makes SARIF generation explicit, easier to test, and easier to copy into GitHub Actions templates while keeping stdout behavior stable when `--out` is absent.
+- **Files affected**: `bin/code-warden.js`, `tools/governance-report.js`, `tools/tests/run-tests.js`, `templates/ci/github-actions.yml`, `README.md`, `code-warden/README.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - GitHub Actions pins track Node 24 action releases
 
 - **Decision**: Move Code-Warden workflow and action references to current Node 24-compatible GitHub Action majors: `actions/checkout@v6`, `actions/setup-node@v6`, `actions/upload-artifact@v7`, and `github/codeql-action/upload-sarif@v4`.

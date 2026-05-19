@@ -166,6 +166,7 @@ code-warden init              # install to detected AI runtimes
 code-warden report            # generate governance report
 code-warden report --format=md # Markdown output (pipe to PR summary)
 code-warden report --format=sarif # SARIF output for Code Scanning
+code-warden report --format=sarif --out=code-warden.sarif
 code-warden doctor            # verify source + install health
 code-warden list              # show detected runtimes
 code-warden hooks claude      # install Claude Code PreToolUse hooks
@@ -227,6 +228,7 @@ Code-Warden produces a machine-readable governance report — verifiable evidenc
 node tools/governance-report.js .              # writes .code-warden-report.json
 node tools/governance-report.js . --format=md  # Markdown table for PR summaries
 node tools/governance-report.js . --format=sarif # SARIF for source-located findings
+node tools/governance-report.js . --format=sarif --out=code-warden.sarif
 ```
 
 The report covers file length, hardcoded credentials, behavioral tests, source integrity, and runtime hook status in a single pass. In CI, it pipes directly into `$GITHUB_STEP_SUMMARY` so every PR shows what was checked.
@@ -285,6 +287,17 @@ Or download a pinned release directly:
 - name: Publish governance summary
   if: always()
   run: node .code-warden-ci/tools/governance-report.js . --format=md >> $GITHUB_STEP_SUMMARY
+
+- name: Generate SARIF report
+  if: always()
+  run: node .code-warden-ci/tools/governance-report.js . --format=sarif --out=code-warden.sarif || true
+
+- name: Upload SARIF report
+  if: always()
+  uses: github/codeql-action/upload-sarif@v4
+  with:
+    sarif_file: code-warden.sarif
+    category: code-warden
 
 - name: Upload governance artifact
   if: always()
