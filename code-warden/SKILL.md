@@ -12,12 +12,12 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 3.3.2
+  version: 3.4.0
   category: development-governance
   changelog: |
-    Unreleased: Governance receipts, evidence providers, reference selection,
-      risk policy, MCP governance, SARIF output, and Code Scanning integration.
-      Added receipt --template, receipt --validate, references <paths...>,
+    v3.4.0 (2026-05-19): Governance receipts, evidence providers, reference
+      selection, risk policy, MCP governance, SARIF output, and Code Scanning
+      integration. Added receipt --template, receipt --validate, references <paths...>,
       configurable external_evidence, reference_selection, and risk_policy rules,
       MCP approval rules, report --format=sarif, report --out=<file>, optional
       GitHub Code Scanning upload, current GitHub Actions pins, and expanded tests.
@@ -71,7 +71,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v3.3.2
+# code-warden v3.4.0
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,

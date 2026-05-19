@@ -38,7 +38,7 @@ The report runs all checks in a single pass (file length, secrets, behavioral te
 ```json
 {
   "tool": "code-warden",
-  "version": "3.3.2",
+  "version": "3.4.0",
   "checks": {
     "fileLength":      { "status": "pass", "filesScanned": 44, "violations": 0 },
     "secrets":         { "status": "pass", "filesScanned": 44, "violations": 0 },

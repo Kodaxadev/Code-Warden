@@ -1,6 +1,6 @@
 {
   "name": "code-warden",
-  "version": "3.3.2",
+  "version": "3.4.0",
   "description": "Verifiable governance for AI-assisted development — checks, hooks, and evidence.",
   "main": "SKILL.md",
   "bin": {
@@ -54,7 +54,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kodaxadev/Code-Warden.git"
+    "url": "git+https://github.com/Kodaxadev/Code-Warden.git"
   },
   "homepage": "https://github.com/Kodaxadev/Code-Warden",
   "bugs": "https://github.com/Kodaxadev/Code-Warden/issues",

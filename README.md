@@ -4,7 +4,7 @@
   <a href="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml">
     <img src="https://github.com/Kodaxadev/Code-Warden/actions/workflows/code-warden.yml/badge.svg" alt="Code-Warden Quality Gate" />
   </a>
-  <img src="https://img.shields.io/badge/version-3.3.2-blue" alt="Version 3.3.2" />
+  <img src="https://img.shields.io/badge/version-3.4.0-blue" alt="Version 3.4.0" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/Claude%20Hooks-PreToolUse-purple" alt="Claude Code PreToolUse Hooks" />
   <img src="https://img.shields.io/badge/AI%20Governance-enforced-red" alt="AI Governance Enforced" />
@@ -184,8 +184,6 @@ code-warden uninstall-hooks claude
 code-warden uninstall-hooks codex
 ```
 
-SARIF and `--out` examples are on `main` and will ship in the next package release.
-
 ## Invoke
 
 ```
@@ -319,7 +317,7 @@ Or download a pinned release directly:
 - name: Install Code-Warden
   run: |
     curl -fsSL -o cw.zip \
-      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.3.2/code-warden-v3.3.2.zip
+      https://github.com/Kodaxadev/Code-Warden/releases/download/v3.4.0/code-warden-v3.4.0.zip
     unzip -q cw.zip -d .code-warden-ci
 
 - name: Governance report
@@ -338,9 +336,7 @@ Or download a pinned release directly:
     retention-days: 90
 ```
 
-The pinned `v3.3.2` release-download path does not include the unreleased SARIF
-and `--out` work on `main`. Use the repository action for SARIF today, or wait
-for the next release before adding SARIF to a downloaded-release template.
+The pinned `v3.4.0` release-download path includes SARIF and `--out` support.
 
 Full template: [`code-warden/templates/ci/github-actions.yml`](code-warden/templates/ci/github-actions.yml)
 
@@ -378,7 +374,7 @@ repositories.
 
 ## Version
 
-v3.3.2 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
+v3.4.0 — See [`CHANGELOG.md`](CHANGELOG.md) for full changelog.
 
 ## Author
 

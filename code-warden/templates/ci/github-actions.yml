@@ -13,7 +13,7 @@
 #   - .code-warden-report.json — machine-readable governance artifact
 #   - Markdown summary on the workflow run / PR (via GITHUB_STEP_SUMMARY)
 #   - Uploaded artifact for audit trail (90-day retention)
-#   - For SARIF upload, use Code-Warden v3.4.0 or newer, or the repository action.
+#   - SARIF output is available in Code-Warden v3.4.0 and newer.
 #
 # How code-warden is made available in CI (choose one):
 #
@@ -41,7 +41,7 @@ on:
     branches: [main, master]
 
 env:
-  CODE_WARDEN_VERSION: v3.3.2
+  CODE_WARDEN_VERSION: v3.4.0
   CODE_WARDEN_PATH: .code-warden-ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 

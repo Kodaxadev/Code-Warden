@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+No unreleased changes yet.
+
+---
+
+## v3.4.0 - 2026-05-19
+
 **Governance receipts, evidence providers, reference selection, risk policy, MCP governance, Code Scanning, CI template parity, and report output paths.**
 
 - Added `code-warden receipt --template --out=<file>` for draft governance receipt artifacts.
@@ -25,7 +31,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Updated GitHub Actions pins to current Node 24-compatible majors: `checkout@v6`, `setup-node@v6`, `upload-artifact@v7`, and `upload-sarif@v4`.
 - Expanded behavioral tests to cover reference selection, risk policy validation, receipt artifacts, UTF-8 BOM receipt input, report output paths, SARIF formatting, source locations, and CLI help examples.
 - Kept JSON/Markdown as the canonical governance evidence for behavioral tests, install health, runtime hooks, and session gates.
-- Kept pinned `v3.3.2` release-download templates on released features until the next package release includes SARIF and `--out`.
+- Updated release-download templates to `v3.4.0` now that SARIF and `--out` are part of the package.
 
 ---
 
