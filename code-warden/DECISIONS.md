@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - External npm smoke test stays separate from local CI
+
+- **Decision**: Add `tools/smoke-npx.js` and `npm run smoke:npx` to verify the published package through `npx code-warden@latest` from a clean temp directory. The repository quality workflow runs it as a separate step, while `npm run ci` remains local and deterministic.
+- **Alternatives considered**:
+  - Fold the networked smoke test into `npm run ci`. Rejected because local CI should not depend on npm registry availability or the already-published `latest` dist-tag.
+  - Only test the local package with `npm pack`. Rejected because that misses the user-facing path where `npx` resolves and executes the public package.
+  - Use a project fixture inside the repo. Rejected because the point is to avoid local checkout resolution and prove clean-directory behavior.
+- **Reasoning**: Code-Warden is distributed primarily through npm and `npx`. A clean external smoke test catches packaging, dist-tag, bin, and report-output regressions that local behavioral tests cannot see.
+- **Files affected**: `tools/smoke-npx.js`, `tools/tests/run-tests.js`, `package.json`, `.github/workflows/code-warden.yml`, `README.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Tag-driven release automation and npm trusted publishing
 
 - **Decision**: Add a tag-triggered GitHub Actions release workflow for Code-Warden. The workflow validates the `vX.Y.Z` tag against `package.json`, runs `npm run ci`, performs `npm publish --dry-run --access public`, verifies the GitHub release does not already exist, publishes to npm through trusted publishing, then creates the GitHub release asset.

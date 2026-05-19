@@ -114,6 +114,7 @@ npm run install-auto    # node install.js
 npm run install-dry-run # node install.js --dry-run
 npm run install-list    # node install.js --list
 npm run install-doctor  # node install.js --doctor
+npm run smoke:npx       # verify published package from a clean temp directory
 npm run test            # behavioral tests (9 scanner/hook pass/fail cases)
 npm run ci              # lint + secrets + test + doctor
 ```
@@ -199,6 +200,17 @@ See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
 > If testing `npx code-warden` from inside the Code-Warden source checkout,
 > npm may prefer the local package context. Test from a separate directory for
 > the same behavior users will see.
+
+Run the external smoke test to exercise the published package from a clean temp
+directory:
+
+```bash
+npm run smoke:npx
+```
+
+The smoke test runs `npx code-warden@latest --version`, then
+`npx code-warden@latest report --format=json`, and verifies the report parses
+as a passing Code-Warden result.
 
 ## Release Process
 

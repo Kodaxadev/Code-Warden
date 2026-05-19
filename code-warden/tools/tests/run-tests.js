@@ -169,6 +169,12 @@ test('file collection: skips generated dirs, lockfiles, and logs', () => {
   }
 });
 
+test('external smoke helper: exposes CLI help', () => {
+  const { code, stdout } = runCLI(path.join(TOOLS, 'smoke-npx.js'), ['--help']);
+  assert.equal(code, 0, 'expected smoke helper help to exit 0');
+  assert.match(stdout, /Usage: code-warden smoke-npx/, 'expected usage text');
+});
+
 // ---------------------------------------------------------------------------
 // Claude hook: warden-lint-hook (Write with oversized content)
 // ---------------------------------------------------------------------------
