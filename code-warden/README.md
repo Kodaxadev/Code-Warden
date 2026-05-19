@@ -87,7 +87,7 @@ permissions:
   security-events: write
 
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v6
   - name: Code-Warden Governance Gate
     uses: Kodaxadev/Code-Warden@v3
     with:

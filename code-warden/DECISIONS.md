@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - GitHub Actions pins track Node 24 action releases
+
+- **Decision**: Move Code-Warden workflow and action references to current Node 24-compatible GitHub Action majors: `actions/checkout@v6`, `actions/setup-node@v6`, `actions/upload-artifact@v7`, and `github/codeql-action/upload-sarif@v4`.
+- **Alternatives considered**:
+  - Keep the existing pins because the workflow still passes. Rejected because GitHub has announced the CodeQL Action v3 deprecation path and the runner now emits runtime warnings.
+  - Pin every action to a full SHA. Rejected for this slice because Code-Warden publishes reusable examples for broad adoption; major-version pins keep the examples readable while staying on maintained action lines.
+  - Change only `upload-sarif`. Rejected because the same workflow warning showed other Node 20-era actions being forced to Node 24.
+- **Reasoning**: GitHub's current SARIF upload docs show `github/codeql-action/upload-sarif@v4`, and the changelog says v3 will be deprecated with GHES 3.19 in December 2026. Current action docs also show Node 24-compatible checkout, setup-node, and upload-artifact majors. Moving now keeps Code-Warden's own gate and copyable templates ahead of the deprecation window.
+- **Files affected**: `action.yml`, `.github/workflows/code-warden.yml`, `.github/workflows/release.yml`, `README.md`, `code-warden/README.md`, `code-warden/templates/ci/github-actions.yml`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - SARIF is source findings, JSON remains governance evidence
 
 - **Decision**: Add `--format=sarif` and optional GitHub Action SARIF upload for source-located findings only: max file length and hardcoded credentials.

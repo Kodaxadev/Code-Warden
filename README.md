@@ -259,7 +259,7 @@ permissions:
   security-events: write
 
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v6
   - name: Code-Warden Governance Gate
     uses: Kodaxadev/Code-Warden@v3
     with:
@@ -267,7 +267,7 @@ steps:
       sarif: 'true'
 ```
 
-The action uploads SARIF through `github/codeql-action/upload-sarif@v3` and
+The action uploads SARIF through `github/codeql-action/upload-sarif@v4` and
 still fails the job when the governance report fails.
 
 Or download a pinned release directly:
@@ -288,7 +288,7 @@ Or download a pinned release directly:
 
 - name: Upload governance artifact
   if: always()
-  uses: actions/upload-artifact@v4
+  uses: actions/upload-artifact@v7
   with:
     name: code-warden-report
     path: .code-warden-report.json
