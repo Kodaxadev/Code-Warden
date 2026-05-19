@@ -7,13 +7,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-**Governance receipts, risk policy, Code Scanning, CI template parity, and report output paths.**
+**Governance receipts, risk policy, MCP governance, Code Scanning, CI template parity, and report output paths.**
 
 - Added `code-warden receipt --template --out=<file>` for draft governance receipt artifacts.
 - Added `code-warden receipt --validate=<file>` to reject incomplete Scope Gate, Plan Gate, and final evidence records.
 - Kept receipts honest: templates start as drafts and validation only passes when declared gate evidence is complete.
 - Added configurable `risk_policy` actions for `low`, `medium`, `high`, and `blocked` governance tiers.
 - Added risk policy evidence to JSON and Markdown governance reports.
+- Added `references/mcp-governance.md` for MCP server approval, toolset scope, credential handling, session/consent risk, SSRF risk, and audit evidence.
 - Added SARIF output via `report --format=sarif` for source-located file length and hardcoded credential findings.
 - Added `--out=<file>` so JSON, Markdown, and SARIF reports can be written directly to CI artifact paths.
 - Added optional SARIF upload support to the reusable GitHub Action.

@@ -41,6 +41,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - MCP servers require governance before integration
+
+- **Decision**: Add a dedicated MCP governance reference before adding any MCP server implementation or config enforcement.
+- **Alternatives considered**:
+  - Add MCP integrations first and document later. Rejected because MCP servers can introduce code execution, credential, network, and data-egress risks before Code-Warden has a stable approval vocabulary.
+  - Treat MCP as only another evidence provider. Rejected because MCP servers can both provide evidence and perform actions, so they need source, toolset, credential, consent, and rollback review.
+  - Put MCP guidance in `operations.md`. Rejected because MCP has a distinct trust boundary and enough security-specific rules to deserve a separate reference file.
+- **Reasoning**: Current MCP security guidance identifies confused deputy, token passthrough, SSRF, session hijacking, local server compromise, and scope minimization as core risks. GitHub and Snyk show that security tooling is moving into agent/MCP workflows, but Code-Warden should govern those integrations before relying on them. Sources: https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices, https://docs.github.com/en/code-security/how-tos/use-ghas-with-ai-coding-agents/scan-for-secrets-with-github-mcp-server?tool=cli, https://github.com/github/github-mcp-server, https://docs.snyk.io/integrations/snyk-studio-agentic-integrations
+- **Files affected**: `references/mcp-governance.md`, `SKILL.md`, `README.md`, `code-warden/README.md`, `CHANGELOG.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Governance-first content positioning
 
 - **Decision**: Refresh public and package docs so Scope Gates, Plan Gates, blast radius, and verification remain the central product story while SARIF, CI, and npm packaging are presented as evidence layers.

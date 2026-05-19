@@ -270,6 +270,7 @@ secret-bearing actions as `blocked` until explicitly scoped.
 | `references/anti-drift.md` | Anchor Check, Session Scoping, Drift Trigger Protocol |
 | `references/operations.md` | Verification, source-control hygiene, dependency control |
 | `references/research-and-fit.md` | Live research gate, stack fit, product-shape guardrails |
+| `references/mcp-governance.md` | MCP server approval, toolset scope, credentials, consent, audit evidence |
 
 ## Note for contributors
 
