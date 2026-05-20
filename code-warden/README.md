@@ -218,6 +218,21 @@ The public CLI also exposes the package smoke helper:
 code-warden smoke-npx --package=code-warden@latest
 ```
 
+### Release Publishing
+
+The release workflow uses npm trusted publishing. Configure the trusted
+publisher on npm before tagging a release:
+
+- Provider: GitHub Actions
+- Owner: `Kodaxadev`
+- Repository: `Code-Warden`
+- Workflow filename: `release.yml`
+- Environment: blank unless the workflow adds one
+
+The workflow fails before publish if `code-warden/package.json` matches an npm
+version that already exists. Bump the package version before creating a release
+tag.
+
 ## Usage
 
 Load at the start of any coding session. Trigger phrases:

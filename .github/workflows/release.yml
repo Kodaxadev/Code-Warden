@@ -45,6 +45,17 @@ jobs:
         working-directory: code-warden
         run: npm run ci
 
+      - name: Check npm version does not already exist
+        working-directory: code-warden
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if npm view "code-warden@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "code-warden@${PACKAGE_VERSION} already exists on npm." >&2
+            echo "Bump code-warden/package.json before creating release tag ${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
+
       - name: Verify package contents
         working-directory: code-warden
         run: npm publish --dry-run --access public

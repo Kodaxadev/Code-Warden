@@ -24,6 +24,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   users.
 - Added `code-warden smoke-npx` as a public CLI wrapper for clean-temp npm
   package smoke testing.
+- Hardened release preflight so tags fail before publish when the npm version
+  already exists, and documented trusted-publisher setup.
 
 ---
 
