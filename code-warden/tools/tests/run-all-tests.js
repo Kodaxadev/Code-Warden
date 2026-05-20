@@ -6,6 +6,8 @@ const path = require('node:path');
 
 const TESTS = [
   'run-tests.js',
+  'cli-tests.js',
+  'codex-config-tests.js',
   'risk-policy-tests.js',
   'reference-selector-tests.js',
 ];

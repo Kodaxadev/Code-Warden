@@ -18,6 +18,7 @@
 const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
+const { enableHooksFeature } = require('../../lib/codex-config');
 
 const MARKER_PREFIX = 'code-warden:';
 const HOOKS_PATH    = path.join(os.homedir(), '.codex', 'hooks.json');
@@ -94,6 +95,8 @@ function installHooks(skillDir) {
   hooks.PreToolUse = [...cleaned, ...buildEntries(skillDir)];
 
   writeHooks(hooks);
+  const config = enableHooksFeature();
+  console.log(`[CodeWarden] Enabled Codex hooks feature -> ${config.configPath}`);
   return HOOKS_PATH;
 }
 

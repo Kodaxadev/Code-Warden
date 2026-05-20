@@ -7,7 +7,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-No unreleased changes yet.
+- Added Codex config handling to `--hooks=codex`: the installer now enables
+  `[features].hooks = true` in `~/.codex/config.toml` and removes deprecated
+  `[features].codex_hooks` entries when present.
+- Updated Codex hook health checks so registered hooks verify both hook script
+  paths and feature-flag enablement without making optional hooks mandatory for
+  base installs.
+- Added tests for Codex config migration and hook feature enablement.
+- Improved first-run onboarding in CLI help, install output, and quickstart docs
+  so users see `init -> doctor -> report -> optional hooks`.
+- Added Codex hook repair guidance so doctor/verify can point partial hook setup
+  back to `code-warden hooks codex`.
+- Added `code-warden verify <target>` as a public CLI wrapper for strict
+  per-runtime install and hook health checks.
+- Clarified target-specific onboarding examples for CLI and direct installer
+  users.
+- Added `code-warden smoke-npx` as a public CLI wrapper for clean-temp npm
+  package smoke testing.
 
 ---
 

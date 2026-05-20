@@ -12,6 +12,7 @@ const COMMANDS = {
   report:  { desc: 'Generate governance report (.code-warden-report.json)', run: ['tools/governance-report.js', '.'] },
   receipt: { desc: 'Create or validate governance receipt artifacts', run: ['tools/receipt.js'] },
   references: { desc: 'Recommend governance references for paths', run: ['tools/select-references.js'] },
+  'smoke-npx': { desc: 'Smoke-test npm package from a clean temp directory', run: ['tools/smoke-npx.js'] },
   list:    { desc: 'Show detected AI runtimes',                   run: ['install.js', '--list'] },
 };
 
@@ -25,15 +26,20 @@ function usage() {
   }
   console.log(`  ${'hooks <target>'.padEnd(22)} Install PreToolUse hooks (${HOOK_TARGETS.join(', ')})`);
   console.log(`  ${'uninstall-hooks <target>'.padEnd(22)} Remove PreToolUse hooks`);
+  console.log(`  ${'verify <target>'.padEnd(22)} Strict health check for one runtime`);
   console.log(`\nExamples:`);
   console.log(`  npx code-warden init`);
+  console.log(`  npx code-warden doctor`);
+  console.log(`  npx code-warden verify codex`);
   console.log(`  npx code-warden report`);
   console.log(`  npx code-warden report --format=md`);
   console.log(`  npx code-warden report --format=sarif --out=code-warden.sarif`);
   console.log(`  npx code-warden receipt --template --out=code-warden-receipt.json`);
   console.log(`  npx code-warden receipt --validate=code-warden-receipt.json`);
   console.log(`  npx code-warden references README.md code-warden/tools/`);
+  console.log(`  npx code-warden smoke-npx --package=code-warden@latest`);
   console.log(`  npx code-warden hooks claude`);
+  console.log(`  npx code-warden hooks codex`);
 }
 
 function run(scriptPath, args) {
@@ -81,6 +87,15 @@ if (command === 'uninstall-hooks') {
     process.exit(1);
   }
   run('install.js', [`--uninstall-hooks=${target}`]);
+}
+
+if (command === 'verify') {
+  const target = rest[0];
+  if (!target) {
+    console.error('Usage: code-warden verify <target>');
+    process.exit(1);
+  }
+  run('install.js', [`--verify-target=${target}`]);
 }
 
 console.error(`Unknown command: ${command}\n`);

@@ -24,20 +24,21 @@
 
 ```bash
 npx code-warden init
-```
-
-Generate a governance report:
-
-```bash
+npx code-warden doctor
+npx code-warden verify codex  # or your target runtime
 npx code-warden report
 ```
 
-Enable hard hooks where supported:
+Optional hard hooks where supported:
 
 ```bash
 npx code-warden hooks claude
 npx code-warden hooks codex
 ```
+
+Use `doctor` after install or hook setup. It verifies installed skill manifests,
+hook script paths, and runtime-specific hook config when hooks are registered.
+When it finds partial hook setup, it prints the repair command to rerun.
 
 ## Who This Is For
 
@@ -176,7 +177,9 @@ code-warden report --format=sarif --out=code-warden.sarif
 code-warden receipt --template --out=code-warden-receipt.json
 code-warden receipt --validate=code-warden-receipt.json
 code-warden references README.md code-warden/tools/
+code-warden smoke-npx --package=code-warden@latest
 code-warden doctor            # verify source + install health
+code-warden verify codex      # strict health check for one runtime
 code-warden list              # show detected runtimes
 code-warden hooks claude      # install Claude Code PreToolUse hooks
 code-warden hooks codex       # install Codex PreToolUse hooks (partial)
@@ -220,6 +223,18 @@ node install.js --hooks=codex            # install (requires Codex target instal
 node install.js --uninstall-hooks=codex  # remove
 ```
 
+The Codex hook installer writes `~/.codex/hooks.json` and enables the current
+Codex feature flag in `~/.codex/config.toml`:
+
+```toml
+[features]
+hooks = true
+```
+
+If an older config contains `[features].codex_hooks`, the installer removes that
+deprecated key while enabling `hooks`. Current Codex docs list `hooks` as the
+stable lifecycle-hook feature flag.
+
 | Hook | Trigger | Policy |
 |------|---------|--------|
 | `warden-apply-patch-hook.js` | `apply_patch` | Blocks if added lines contain a credential or estimated result exceeds line limit |
@@ -227,7 +242,9 @@ node install.js --uninstall-hooks=codex  # remove
 
 Codex exposes `apply_patch` and `Bash` at `PreToolUse` — not `Write`/`Edit`. These are the available surfaces. CI enforcement closes the remaining gap.
 
-Doctor and `--verify-target=<id>` validate hook script paths when hooks are registered.
+Doctor and `--verify-target=<id>` validate hook script paths and Codex hook
+feature enablement when hooks are registered, with repair guidance for partial
+hook setup.
 
 ## Governance Evidence
 

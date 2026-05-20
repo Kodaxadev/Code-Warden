@@ -17,6 +17,18 @@ Each entry:
 
 ---
 
+## 2026-05-19 - Codex hook install owns feature-flag enablement
+
+- **Decision**: `--hooks=codex` now enables `[features].hooks = true` in `~/.codex/config.toml` and removes deprecated `[features].codex_hooks` entries when found. Doctor and `--verify-target=codex` validate feature enablement when Code-Warden Codex hooks are registered.
+- **Alternatives considered**:
+  - Document the manual config edit only. Rejected because a hook installer that requires users to know a second hidden config step is not actually installing the feature.
+  - Make Codex hooks mandatory for every Codex install. Rejected because hard enforcement is optional; base `doctor` should not fail a normal skill install that has not opted into runtime hooks.
+  - Add a TOML dependency. Rejected because the needed migration is narrow and Code-Warden currently has zero runtime dependencies.
+- **Reasoning**: Current Codex docs state that lifecycle hooks are controlled by the stable `[features].hooks` flag and loaded from `hooks.json` or inline hook config. Code-Warden should align the installer with that current flag instead of relying on deprecated `codex_hooks` behavior or a manual user fix. Source: https://developers.openai.com/codex/config-basic#feature-flags
+- **Files affected**: `install.js`, `tools/lib/codex-config.js`, `tools/hooks/codex/install-hooks.js`, `tools/tests/codex-config-tests.js`, `tools/tests/run-all-tests.js`, `README.md`, `code-warden/README.md`, `CHANGELOG.md`, `DECISIONS.md`
+
+---
+
 ## 2026-05-19 - Governance receipts start as honest artifacts
 
 - **Decision**: Add `code-warden receipt --template --out=<file>` and `code-warden receipt --validate=<file>` as the first durable session-governance artifact surface.

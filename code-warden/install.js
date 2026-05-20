@@ -24,6 +24,7 @@ const readline = require('readline');
 const { TARGETS }           = require('./tools/auto-targets');
 const { scanTargets }       = require('./tools/auto-detect');
 const { installWindsurf }   = require('./tools/auto-windsurf-adapter');
+const { getCodexHookRepairHint, inspectHookEntries, inspectHooksFeature } = require('./tools/lib/codex-config');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -205,7 +206,6 @@ function checkTarget(t, issues) {
     }
     check('    SKILL.md present in install dir', fs.existsSync(skillMdPath));
 
-    // Validate hook entries if registered in runtime settings
     if (t.id === 'claude') {
       const sp = path.join(t.skillsDir, '..', 'settings.json');
       if (fs.existsSync(sp)) { try {
@@ -215,10 +215,10 @@ function checkTarget(t, issues) {
     }
     if (t.id === 'codex') {
       const hp = path.join(t.skillsDir, '..', 'hooks.json');
-      if (fs.existsSync(hp)) { try {
-        const cw=(JSON.parse(fs.readFileSync(hp,'utf8'))?.PreToolUse||[]).filter(e=>String(e.description||'').startsWith('code-warden:'));
-        if(cw.length>0){check(`    Hooks registered (${cw.length})`,true);cw.forEach(e=>{const p=e.args&&e.args[0];check(`    Hook script: ${path.basename(p||'?')}`,!!(p&&fs.existsSync(p)));});}
-      } catch { fail('    hooks.json parse error'); issues.push('codex: hooks.json'); } }
+      const hooks = inspectHookEntries(hp);
+      if (!hooks.exists) skip('    Codex hooks not registered');
+      if (hooks.parseError) { fail('    hooks.json parse error'); issues.push('codex: hooks.json'); }
+      if (hooks.entries.length>0){const missing=hooks.entries.map(e=>e.args&&e.args[0]).filter(p=>!(p&&fs.existsSync(p)));check(`    Hooks registered (${hooks.entries.length})`,true);hooks.entries.forEach(e=>{const p=e.args&&e.args[0];check(`    Hook script: ${path.basename(p||'?')}`,!!(p&&fs.existsSync(p)));});const cfg=inspectHooksFeature();check('    config.toml [features].hooks enabled', cfg.enabled);if (cfg.deprecated) { fail('    Deprecated [features].codex_hooks present'); issues.push('codex: deprecated codex_hooks'); }const hint=getCodexHookRepairHint({entries:hooks.entries,missingScripts:missing,config:cfg});if(hint) console.error(`  [FIX]     ${hint}`);}
     }
   }
   console.log('');
@@ -388,8 +388,8 @@ async function main() {
   }
 
   console.log('');
-  log(`Done. ${success} installed, ${failure} failed.`);
-  if (!dryRun) log('Restart or refresh your agent session to load the updated skill.');
+  log(`Done. ${success} ${dryRun ? 'planned' : 'installed'}, ${failure} failed.`);
+  if (!dryRun) log('Next: run `code-warden doctor`, then `code-warden report`.\n[CodeWarden] Optional hard hooks: `code-warden hooks claude` or `code-warden hooks codex`.\n[CodeWarden] Restart or refresh your agent session to load the updated skill.');
   if (failure > 0) process.exit(1);
 }
 

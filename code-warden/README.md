@@ -117,6 +117,9 @@ steps:
 
 ```bash
 npx code-warden init
+npx code-warden doctor
+npx code-warden verify codex  # or your target runtime
+npx code-warden report
 ```
 
 Or install globally:
@@ -124,6 +127,29 @@ Or install globally:
 ```bash
 npm install -g code-warden
 code-warden init
+code-warden doctor
+code-warden verify codex  # or your target runtime
+code-warden report
+```
+
+Optional hard hooks:
+
+```bash
+code-warden hooks claude
+code-warden hooks codex
+code-warden doctor
+```
+
+`doctor` verifies installed manifests, hook script paths, and runtime hook
+config when hooks are registered. If hook setup is partial, it prints the repair
+command to rerun.
+
+Target one runtime when troubleshooting:
+
+```bash
+code-warden init --target=codex
+code-warden verify codex
+code-warden hooks codex
 ```
 
 ### CLI commands
@@ -138,7 +164,9 @@ code-warden init
 | `code-warden receipt --template --out=code-warden-receipt.json` | Write a draft Scope Gate / Plan Gate receipt |
 | `code-warden receipt --validate=code-warden-receipt.json` | Validate completed receipt evidence |
 | `code-warden references <paths...>` | Recommend focused governance references for touched paths |
+| `code-warden smoke-npx --package=code-warden@latest` | Smoke-test npm package from a clean temp directory |
 | `code-warden doctor` | Verify source integrity + install health |
+| `code-warden verify <target>` | Strict health check for one runtime |
 | `code-warden list` | Show detected runtimes |
 | `code-warden hooks claude` | Install Claude Code PreToolUse hooks |
 | `code-warden hooks codex` | Install Codex PreToolUse hooks (partial) |
@@ -158,6 +186,10 @@ code-warden init
 | `node install.js --verify-target=claude` | Strict health check — exits nonzero if not installed |
 | `node install.js --hooks=claude` | Install PreToolUse hooks into `~/.claude/settings.json` |
 | `node install.js --uninstall-hooks=claude` | Remove code-warden hook entries from settings |
+| `node install.js --target=codex --all` | Install only the Codex target |
+| `node install.js --verify-target=codex` | Strict Codex health check |
+| `node install.js --hooks=codex` | Install Codex PreToolUse hooks and enable `[features].hooks` |
+| `node install.js --uninstall-hooks=codex` | Remove Codex hook entries |
 
 Supported targets: **Claude Code**, **Cursor**, **Warp**, **OpenAI Codex**, **Windsurf**, **Generic Agents**.
 
@@ -178,6 +210,12 @@ npm run install-doctor  # node install.js --doctor
 npm run smoke:npx       # verify published package from a clean temp directory
 npm run test            # behavioral tests (24 scanner/report/receipt/risk/reference/hook cases)
 npm run ci              # lint + secrets + test + doctor
+```
+
+The public CLI also exposes the package smoke helper:
+
+```bash
+code-warden smoke-npx --package=code-warden@latest
 ```
 
 ## Usage
@@ -231,6 +269,14 @@ node install.js --hooks=codex   # partial apply_patch/Bash coverage
 
 Codex cannot hook `Write`/`Edit` directly. CI enforcement closes the remaining gap.
 All hooks use exec form (`node /path/to/hook.js`) — no shell differences across platforms.
+The Codex installer also enables the current lifecycle-hook feature flag in
+`~/.codex/config.toml` and removes the deprecated `[features].codex_hooks`
+setting when present:
+
+```toml
+[features]
+hooks = true
+```
 
 Thresholds are read from `codewarden.json` in the installed skill directory.
 
@@ -239,7 +285,9 @@ node install.js --uninstall-hooks=claude
 node install.js --uninstall-hooks=codex
 ```
 
-Doctor and `--verify-target=<id>` validate hook script paths when hooks are registered.
+Doctor and `--verify-target=<id>` validate hook script paths and Codex hook
+feature enablement when hooks are registered, with repair guidance for partial
+hook setup.
 
 ## Configuration
 
