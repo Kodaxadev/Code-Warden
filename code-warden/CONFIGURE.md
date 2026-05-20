@@ -18,6 +18,12 @@ Located at the root of the skill folder. Default configuration:
   },
   "safety": {
     "exempt_from_blast_radius": ["tests/", "docs/", "scripts/"]
+  },
+  "lint": {
+    "exclude_paths": []
+  },
+  "secrets": {
+    "allowlist": []
   }
 }
 ```
@@ -28,6 +34,8 @@ Located at the root of the skill folder. Default configuration:
 | `pre_flight_trigger_lines` | 150 | Forces a JSON manifest before large outputs. |
 | `human_checkpoint_files` | 2 | Requires human `[AWAITING CONFIRMATION]` before modifying this many files simultaneously. |
 | `exempt_from_blast_radius` | (list) | Skips strict rewriting rollback plans on these file directories. |
+| `lint.exclude_paths` | `[]` | Path prefixes excluded from file-length checks. Use for docs, generated files, or vendored code (e.g. `["Documents/", "generated/"]`). |
+| `secrets.allowlist` | `[]` | Path prefixes excluded from hardcoded-credential scanning. Use for files with known-safe localhost dev URLs or test fixtures (e.g. `["scripts/indexer.config.toml"]`). |
 
 ---
 

@@ -11,6 +11,12 @@
       "scripts/"
     ]
   },
+  "lint": {
+    "exclude_paths": []
+  },
+  "secrets": {
+    "allowlist": []
+  },
   "reference_selection": {
     "rules": [
       {

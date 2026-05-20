@@ -30,6 +30,10 @@ inputs:
     description: Code scanning category for Code-Warden SARIF results.
     required: false
     default: code-warden
+  config:
+    description: Path to a codewarden.json config file in the repo. Overrides built-in defaults.
+    required: false
+    default: ''
 
 outputs:
   report-path:
@@ -60,18 +64,32 @@ runs:
       id: governance
       continue-on-error: true
       shell: bash
-      run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}"
+      run: |
+        CONFIG_FLAG=""
+        if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
+          CONFIG_FLAG="--config=${{ inputs.config }}"
+        fi
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" $CONFIG_FLAG
 
     - name: Publish governance summary
       if: ${{ always() && inputs.summary == 'true' }}
       shell: bash
-      run: node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md >> "$GITHUB_STEP_SUMMARY" || true
+      run: |
+        CONFIG_FLAG=""
+        if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
+          CONFIG_FLAG="--config=${{ inputs.config }}"
+        fi
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md $CONFIG_FLAG >> "$GITHUB_STEP_SUMMARY" || true
 
     - name: Generate SARIF report
       if: ${{ always() && inputs.sarif == 'true' }}
       shell: bash
       run: |
-        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=sarif > "${{ steps.sarif-path.outputs.path }}" || true
+        CONFIG_FLAG=""
+        if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
+          CONFIG_FLAG="--config=${{ inputs.config }}"
+        fi
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=sarif $CONFIG_FLAG > "${{ steps.sarif-path.outputs.path }}" || true
         test -s "${{ steps.sarif-path.outputs.path }}"
 
     - name: Upload SARIF report

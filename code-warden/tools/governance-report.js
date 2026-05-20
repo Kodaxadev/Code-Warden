@@ -24,10 +24,12 @@ function parseArgs(argv) {
   const args = argv.slice(2);
   const formatArg = args.find(a => a.startsWith('--format='));
   const outArg = args.find(a => a.startsWith('--out='));
+  const configArg = args.find(a => a.startsWith('--config='));
   const format = formatArg ? formatArg.split('=')[1] : null;
   const out = outArg ? outArg.slice('--out='.length) : null;
+  const configPath = configArg ? configArg.slice('--config='.length) : null;
   const scanPath = args.find(a => !a.startsWith('--')) || '.';
-  return { format, out, scanPath };
+  return { format, out, scanPath, configPath };
 }
 
 // ---------------------------------------------------------------------------
@@ -49,8 +51,13 @@ function gitInfo() {
 // File length + secrets (single pass over all files)
 // ---------------------------------------------------------------------------
 
-function runScans(scanPath) {
-  const { maxFileLength } = loadConfig();
+function matchesAnyPrefix(filePath, prefixes) {
+  const normalized = filePath.replace(/\\/g, '/');
+  return prefixes.some(p => normalized.startsWith(p) || normalized === p.replace(/\/$/, ''));
+}
+
+function runScans(scanPath, configPath) {
+  const { maxFileLength, lintExcludePaths, secretsAllowlist } = loadConfig(configPath);
   const resolved = path.resolve(scanPath);
 
   if (!fs.existsSync(resolved)) {
@@ -75,13 +82,15 @@ function runScans(scanPath) {
 
     const rel = scanRootIsDirectory ? path.relative(resolved, f) : path.basename(f);
 
-    const lineCount = countLines(content);
-    if (lineCount > maxFileLength) {
-      lengthViolations.push({ file: rel, lines: lineCount, limit: maxFileLength });
+    if (!matchesAnyPrefix(rel, lintExcludePaths)) {
+      const lineCount = countLines(content);
+      if (lineCount > maxFileLength) {
+        lengthViolations.push({ file: rel, lines: lineCount, limit: maxFileLength });
+      }
     }
 
     const hit = scanForSecrets(content);
-    if (hit) {
+    if (hit && !matchesAnyPrefix(rel, secretsAllowlist)) {
       secretViolations.push({ file: rel, pattern: hit.label, line: hit.line, column: hit.column });
     }
   }
@@ -212,9 +221,9 @@ function checkRuntimeHooks() {
 // Report assembly
 // ---------------------------------------------------------------------------
 
-function generateReport(scanPath) {
+function generateReport(scanPath, configPath) {
   const repo = gitInfo();
-  const { fileLength, secrets } = runScans(scanPath);
+  const { fileLength, secrets } = runScans(scanPath, configPath);
   const behavioralTests = checkTests();
   const installHealth = checkInstallHealth();
   const runtimeHooks = checkRuntimeHooks();
@@ -315,8 +324,8 @@ function writeReport(outPath, content) {
 // Main
 // ---------------------------------------------------------------------------
 
-const { format, out, scanPath } = parseArgs(process.argv);
-const report = generateReport(scanPath);
+const { format, out, scanPath, configPath } = parseArgs(process.argv);
+const report = generateReport(scanPath, configPath);
 
 if (out) {
   writeReport(out, formatReport(report, format));
