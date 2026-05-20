@@ -24,11 +24,13 @@ const DEFAULT_CONFIG_PATH = path.join(__dirname, '..', '..', 'codewarden.json');
  * Falls back to defaults silently if the file is missing or unparseable.
  *
  * @param {string} [configPath] - Override the config file location
- * @returns {{ maxFileLength: number }}
+ * @returns {{ maxFileLength: number, lintExcludePaths: string[], secretsAllowlist: string[] }}
  */
 function loadConfig(configPath) {
   const target = configPath || DEFAULT_CONFIG_PATH;
   let maxFileLength = 400;
+  let lintExcludePaths = [];
+  let secretsAllowlist = [];
 
   try {
     const raw = fs.readFileSync(target, 'utf8');
@@ -39,11 +41,17 @@ function loadConfig(configPath) {
     if (typeof configured === 'number' && configured > 0) {
       maxFileLength = configured;
     }
+    if (Array.isArray(cfg?.lint?.exclude_paths)) {
+      lintExcludePaths = cfg.lint.exclude_paths.filter(p => typeof p === 'string');
+    }
+    if (Array.isArray(cfg?.secrets?.allowlist)) {
+      secretsAllowlist = cfg.secrets.allowlist.filter(p => typeof p === 'string');
+    }
   } catch {
     // Missing or invalid config — use defaults
   }
 
-  return { maxFileLength };
+  return { maxFileLength, lintExcludePaths, secretsAllowlist };
 }
 
 module.exports = { loadConfig, DEFAULT_CONFIG_PATH };
