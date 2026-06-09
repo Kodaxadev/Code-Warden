@@ -264,7 +264,7 @@ See [`examples/governed-session.md`](examples/governed-session.md) for an annota
 Install hard enforcement that runs at the `PreToolUse` level where the runtime exposes usable surfaces.
 
 ```bash
-node install.js --hooks=claude  # full Write/Edit coverage
+node install.js --hooks=claude  # Write/Edit/NotebookEdit + Bash/PowerShell coverage
 node install.js --hooks=codex   # partial apply_patch/Bash coverage
 ```
 
@@ -272,8 +272,9 @@ node install.js --hooks=codex   # partial apply_patch/Bash coverage
 
 | Hook | Trigger | Policy |
 |------|---------|--------|
-| `warden-lint-hook.js` | `Write` or `Edit` | Blocks if resulting file exceeds line limit |
-| `warden-secrets-hook.js` | `Write` or `Edit` | Hardcoded credential scanner — blocks if content matches any secret pattern |
+| `warden-lint-hook.js` | `Write`, `Edit`, or `NotebookEdit` | Blocks if resulting file exceeds line limit; asks for confirmation past `pre_flight_trigger_lines` (NotebookEdit is exempt — cells are not files) |
+| `warden-secrets-hook.js` | `Write`, `Edit`, or `NotebookEdit` | Hardcoded credential scanner — blocks if content matches any secret pattern |
+| `warden-command-hook.js` | `Bash` or `PowerShell` | Blocks command strings that contain hardcoded credentials |
 
 ### OpenAI Codex
 
@@ -293,7 +294,9 @@ setting when present:
 hooks = true
 ```
 
-Thresholds are read from `codewarden.json` in the installed skill directory.
+Thresholds are read from the governed project's own `codewarden.json` when one
+is found (hooks walk up from the working directory, stopping at the repo
+root), falling back to `codewarden.json` in the installed skill directory.
 
 ```bash
 node install.js --uninstall-hooks=claude
@@ -308,15 +311,21 @@ hook setup.
 
 All thresholds in [`codewarden.json`](codewarden.json):
 
-| Setting | Default | What it controls |
-|---------|---------|-----------------|
-| `thresholds.max_file_length` | 400 | Lines before `warden-lint.js` flags a file |
-| `thresholds.pre_flight_trigger_lines` | 150 | Lines before a pre-flight manifest is required |
-| `thresholds.human_checkpoint_files` | 2 | Files touched before `[AWAITING CONFIRMATION]` is required |
-| `safety.exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | Paths excluded from rollback-plan rule |
-| `reference_selection.rules` | 4 path rules | Maps touched paths to focused reference files |
-| `external_evidence.providers` | 4 providers | Describes approved external evidence sources and trust limits |
-| `risk_policy.actions` | 7 governed actions | Maps action classes to `low`, `medium`, `high`, or `blocked` |
+| Setting | Default | Enforced by | What it controls |
+|---------|---------|-------------|-----------------|
+| `thresholds.max_file_length` | 400 | hook + CI | Lines before `warden-lint.js` and the hooks flag a file |
+| `thresholds.pre_flight_trigger_lines` | 150 | hook | Lines in a single Write/Edit change before the Claude lint hook asks for confirmation |
+| `thresholds.human_checkpoint_files` | 2 | prompt | Files touched before `[AWAITING CONFIRMATION]` is required (protocol rule only) |
+| `safety.exempt_from_blast_radius` | `tests/`, `docs/`, `scripts/` | prompt | Paths excluded from rollback-plan rule (protocol rule only) |
+| `lint.exclude_paths` | `[]` | hook + CI | Path prefixes excluded from file-length checks |
+| `secrets.allowlist` | `[]` | hook + CI | Path prefixes excluded from credential scanning |
+| `reference_selection.rules` | 4 path rules | CLI (advisory) | Maps touched paths to focused reference files |
+| `external_evidence.providers` | 4 providers | prompt | Describes approved external evidence sources and trust limits |
+| `risk_policy.actions` | 7 governed actions | CI report | Maps action classes to `low`, `medium`, `high`, or `blocked` |
+
+"Enforced by" legend: **hook** = runtime PreToolUse hooks, **CI** = CLI scanners
+and `governance-report.js`, **prompt** = governance protocol text only — the
+agent is instructed to comply, but no runtime check blocks a violation.
 
 See [`CONFIGURE.md`](CONFIGURE.md) for team-size profiles and tuning rationale.
 

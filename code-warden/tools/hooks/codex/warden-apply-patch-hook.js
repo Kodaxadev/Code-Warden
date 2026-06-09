@@ -17,11 +17,16 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { scanForSecrets }          = require('../../lib/secret-patterns');
-const { countLines }              = require('../../lib/line-count');
-const { loadConfig }              = require('../../lib/config');
+const { scanForSecrets }     = require('../../lib/secret-patterns');
+const { countLines }         = require('../../lib/line-count');
+const { loadConfig }         = require('../../lib/config');
+const { matchesProjectPath } = require('../../lib/path-match');
 
-const { maxFileLength: maxLines } = loadConfig();
+// Discover the governed project's codewarden.json from the working directory
+// (Codex payloads do not carry cwd); falls back to the skill-dir default.
+const BASE_DIR = process.cwd();
+const { maxFileLength: maxLines, lintExcludePaths, secretsAllowlist, projectRoot } =
+  loadConfig(null, BASE_DIR);
 
 
 function deny(reason) {
@@ -96,17 +101,22 @@ process.stdin.on('end', () => {
   const patch  = String(input.patch || '');
   if (!patch) process.exit(0);
 
-  // --- Secrets check on added lines ---
-  const added = extractAddedLines(patch);
-  const addedText = added.join('\n');
-  const hit = scanForSecrets(addedText);
-  if (hit) deny(`Blocked apply_patch — hardcoded credential detected (${hit.label}). Remove before patching.`);
-
-  // --- File length check ---
   const targetPath = extractTargetPath(patch);
-  const estimated  = estimateResultLines(patch, targetPath);
-  if (estimated !== null && estimated > maxLines) {
-    deny(`Blocked apply_patch — resulting file would be ~${estimated} lines (limit ${maxLines}). Break it up first.`);
+
+  // --- Secrets check on added lines (skipped for secrets.allowlist paths) ---
+  if (!matchesProjectPath(targetPath, projectRoot, secretsAllowlist, BASE_DIR)) {
+    const added = extractAddedLines(patch);
+    const addedText = added.join('\n');
+    const hit = scanForSecrets(addedText);
+    if (hit) deny(`Blocked apply_patch — hardcoded credential detected (${hit.label}). Remove before patching.`);
+  }
+
+  // --- File length check (skipped for lint.exclude_paths paths) ---
+  if (!matchesProjectPath(targetPath, projectRoot, lintExcludePaths, BASE_DIR)) {
+    const estimated = estimateResultLines(patch, targetPath);
+    if (estimated !== null && estimated > maxLines) {
+      deny(`Blocked apply_patch — resulting file would be ~${estimated} lines (limit ${maxLines}). Break it up first.`);
+    }
   }
 
   process.exit(0);

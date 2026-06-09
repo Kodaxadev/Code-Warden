@@ -5,12 +5,13 @@ const fs            = require('fs');
 const path          = require('path');
 const os            = require('os');
 const { spawnSync } = require('child_process');
-const { countLines }     = require('./lib/line-count');
-const { collectFiles }   = require('./lib/file-collection');
-const { scanForSecrets } = require('./lib/secret-patterns');
-const { loadConfig }     = require('./lib/config');
-const { formatSarif }    = require('./lib/sarif');
-const { loadRiskPolicy } = require('./lib/risk-policy');
+const { countLines }        = require('./lib/line-count');
+const { collectFiles }      = require('./lib/file-collection');
+const { scanForAllSecrets } = require('./lib/secret-patterns');
+const { loadConfig }        = require('./lib/config');
+const { matchesAnyPrefix }  = require('./lib/path-match');
+const { formatSarif }       = require('./lib/sarif');
+const { loadRiskPolicy }    = require('./lib/risk-policy');
 
 const ROOT    = path.join(__dirname, '..');
 const PKG     = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -51,11 +52,6 @@ function gitInfo() {
 // File length + secrets (single pass over all files)
 // ---------------------------------------------------------------------------
 
-function matchesAnyPrefix(filePath, prefixes) {
-  const normalized = filePath.replace(/\\/g, '/');
-  return prefixes.some(p => normalized.startsWith(p) || normalized === p.replace(/\/$/, ''));
-}
-
 function runScans(scanPath, configPath) {
   const { maxFileLength, lintExcludePaths, secretsAllowlist } = loadConfig(configPath);
   const resolved = path.resolve(scanPath);
@@ -89,9 +85,10 @@ function runScans(scanPath, configPath) {
       }
     }
 
-    const hit = scanForSecrets(content);
-    if (hit && !matchesAnyPrefix(rel, secretsAllowlist)) {
-      secretViolations.push({ file: rel, pattern: hit.label, line: hit.line, column: hit.column });
+    if (!matchesAnyPrefix(rel, secretsAllowlist)) {
+      for (const hit of scanForAllSecrets(content)) {
+        secretViolations.push({ file: rel, pattern: hit.label, line: hit.line, column: hit.column });
+      }
     }
   }
 

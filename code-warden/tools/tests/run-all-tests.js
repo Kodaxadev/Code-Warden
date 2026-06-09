@@ -10,6 +10,9 @@ const TESTS = [
   'codex-config-tests.js',
   'risk-policy-tests.js',
   'reference-selector-tests.js',
+  'secret-pattern-tests.js',
+  'config-discovery-tests.js',
+  'hook-coverage-tests.js',
 ];
 
 let failed = false;

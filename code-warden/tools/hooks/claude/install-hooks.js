@@ -55,21 +55,30 @@ function stripCodeWardenHooks(preToolUse) {
     .filter(matcher => (matcher.hooks || []).length > 0);
 }
 
-function buildEntries(skillDir) {
+function buildHookEntry(skillDir, file, description) {
+  return {
+    type:        'command',
+    command:     'node',
+    args:        [path.join(skillDir, 'tools', 'hooks', 'claude', file)],
+    description,
+    timeout:     30,
+  };
+}
+
+function buildMatcherGroups(skillDir) {
   return [
     {
-      type:        'command',
-      command:     'node',
-      args:        [path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-lint-hook.js')],
-      description: 'code-warden: file length gate',
-      timeout:     30,
+      matcher: 'Write|Edit|NotebookEdit',
+      hooks: [
+        buildHookEntry(skillDir, 'warden-lint-hook.js',    'code-warden: file length gate'),
+        buildHookEntry(skillDir, 'warden-secrets-hook.js', 'code-warden: zero-trust secrets gate'),
+      ],
     },
     {
-      type:        'command',
-      command:     'node',
-      args:        [path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-secrets-hook.js')],
-      description: 'code-warden: zero-trust secrets gate',
-      timeout:     30,
+      matcher: 'Bash|PowerShell',
+      hooks: [
+        buildHookEntry(skillDir, 'warden-command-hook.js', 'code-warden: command secrets gate'),
+      ],
     },
   ];
 }
@@ -84,6 +93,7 @@ function installHooks(skillDir) {
     path.join(skillDir, 'SKILL.md'),
     path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-lint-hook.js'),
     path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-secrets-hook.js'),
+    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-command-hook.js'),
   ];
   for (const p of required) {
     if (!fs.existsSync(p)) {
@@ -98,15 +108,15 @@ function installHooks(skillDir) {
   settings.hooks  = settings.hooks || {};
   const existing  = settings.hooks.PreToolUse || [];
 
-  // Remove stale code-warden entries, then append fresh block
+  // Remove stale code-warden entries, then append fresh matcher groups
   const cleaned   = stripCodeWardenHooks(existing);
   settings.hooks.PreToolUse = [
     ...cleaned,
-    { matcher: 'Write|Edit', hooks: buildEntries(skillDir) },
+    ...buildMatcherGroups(skillDir),
   ];
 
   writeSettings(settings);
   return SETTINGS_PATH;
 }
 
-module.exports = { installHooks };
+module.exports = { installHooks, stripCodeWardenHooks, buildMatcherGroups };

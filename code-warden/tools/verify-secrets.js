@@ -2,18 +2,20 @@
 'use strict';
 
 const fs = require('fs');
-const { scanForSecrets } = require('./lib/secret-patterns');
-const { expandPaths }    = require('./lib/file-collection');
+const { scanForAllSecrets } = require('./lib/secret-patterns');
+const { expandPaths }       = require('./lib/file-collection');
 
 const filePaths = expandPaths(process.argv.slice(2), 'verify-secrets.js');
 let hasErrors = false;
 
 for (const filePath of filePaths) {
   const content = fs.readFileSync(filePath, 'utf8');
-  const hit = scanForSecrets(content);
+  const hits = scanForAllSecrets(content);
 
-  if (hit) {
-    console.error(`[FAIL] [CodeWarden] Hardcoded credential detected in ${filePath} - pattern: ${hit.label}`);
+  if (hits.length > 0) {
+    for (const hit of hits) {
+      console.error(`[FAIL] [CodeWarden] Hardcoded credential detected in ${filePath} - pattern: ${hit.label} (line ${hit.line}, column ${hit.column})`);
+    }
     console.error('    Rule: All secrets must be sourced from an environment variable (e.g., process.env)');
     hasErrors = true;
   } else {
