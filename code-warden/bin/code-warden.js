@@ -16,7 +16,7 @@ const COMMANDS = {
   list:    { desc: 'Show detected AI runtimes',                   run: ['install.js', '--list'] },
 };
 
-const HOOK_TARGETS = ['claude', 'codex'];
+const HOOK_TARGETS = ['claude', 'codex', 'git'];
 
 function usage() {
   console.log('Usage: code-warden <command> [options]\n');
@@ -24,8 +24,9 @@ function usage() {
   for (const [name, { desc }] of Object.entries(COMMANDS)) {
     console.log(`  ${name.padEnd(22)} ${desc}`);
   }
-  console.log(`  ${'hooks <target>'.padEnd(22)} Install PreToolUse hooks (${HOOK_TARGETS.join(', ')})`);
-  console.log(`  ${'uninstall-hooks <target>'.padEnd(22)} Remove PreToolUse hooks`);
+  console.log(`  ${'hooks <target>'.padEnd(22)} Install enforcement hooks (${HOOK_TARGETS.join(', ')})`);
+  console.log(`  ${''.padEnd(22)} claude/codex are per-user; git is per-repo (run from the repo)`);
+  console.log(`  ${'uninstall-hooks <target>'.padEnd(22)} Remove enforcement hooks`);
   console.log(`  ${'verify <target>'.padEnd(22)} Strict health check for one runtime`);
   console.log(`\nExamples:`);
   console.log(`  npx code-warden init`);
@@ -40,6 +41,9 @@ function usage() {
   console.log(`  npx code-warden smoke-npx --package=code-warden@latest`);
   console.log(`  npx code-warden hooks claude`);
   console.log(`  npx code-warden hooks codex`);
+  console.log(`  npx code-warden hooks git        # pre-commit backstop for the repo at cwd`);
+  console.log(`  npx code-warden report --write-baseline`);
+  console.log(`  npx code-warden report --baseline`);
 }
 
 function run(scriptPath, args) {

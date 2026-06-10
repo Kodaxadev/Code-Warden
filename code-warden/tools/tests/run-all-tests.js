@@ -13,6 +13,8 @@ const TESTS = [
   'secret-pattern-tests.js',
   'config-discovery-tests.js',
   'hook-coverage-tests.js',
+  'git-hook-tests.js',
+  'baseline-tests.js',
 ];
 
 let failed = false;
