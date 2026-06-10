@@ -36,6 +36,8 @@ Located at the root of the skill folder. Default configuration:
 | `exempt_from_blast_radius` | (list) | prompt | Skips strict rewriting rollback plans on these file directories. Protocol rule only — no runtime hook or CI check enforces it. |
 | `lint.exclude_paths` | `[]` | hook + CI | Path prefixes excluded from file-length checks. Use for docs, generated files, or vendored code (e.g. `["Documents/", "generated/"]`). |
 | `secrets.allowlist` | `[]` | hook + CI | Path prefixes excluded from hardcoded-credential scanning. Use for files with known-safe localhost dev URLs or test fixtures (e.g. `["scripts/indexer.config.toml"]`). |
+| `risk_policy.command_rules` | `[]` | hook | Per-rule overrides for the Command Risk Gate. Entries `{ "id", "pattern", "tier", "message" }` merge with the built-in defaults: reusing a default `id` replaces that rule, and `"tier": "off"` (or `"allow"`) disables it. `"blocked"` denies the shell command; `"high"` asks for confirmation (Claude) or allows silently (Codex has no ask equivalent). |
+| `.code-warden/scope.json` (managed via `code-warden scope`) | not set | hook | Opt-in Scope Lock. When present with `"enforce": true`, write hooks (Claude Write/Edit/NotebookEdit, Codex apply_patch) deny edits outside the declared `filesIn` paths. No file means no enforcement. |
 
 "Enforced by" legend: **hook** = runtime PreToolUse hooks, **CI** = `warden-lint.js` / `verify-secrets.js` / `governance-report.js`, **prompt** = governance protocol text only (the agent is instructed to comply, but nothing blocks it at runtime).
 
@@ -47,6 +49,33 @@ Located at the root of the skill folder. Default configuration:
 2. **Modify** the specific rule or threshold inside the JSON structural fields.
 3. The executable tools (`tools/warden-lint.js`, etc.) read these limits dynamically so no Markdown files need to be edited to enforce limits.
 4. **Log the change** in `DECISIONS.md` so your team knows why the default was overridden.
+
+## Scope Lock
+
+The Scope Lock mechanically enforces the Scope Gate's files-in contract.
+Declare the goal and the paths the session may touch:
+
+```
+code-warden scope set --goal="Fix auth bug" src/ lib/utils.js
+```
+
+This writes `<repoRoot>/.code-warden/scope.json`. While it exists, any agent
+write outside the declared paths is denied at the hook layer. The agent sees:
+
+```
+[CodeWarden] Scope lock: docs/notes.md is outside the declared scope
+(goal: Fix auth bug). Ask the user to approve expansion via:
+code-warden scope add docs/notes.md
+```
+
+Expansions are appended to `expansions[]` in the scope file as an audit trail.
+The scope file itself is self-protected: hooks deny agent edits to anything
+under `.code-warden/`, even when `enforce` is `false`.
+
+Honest limits: if the agent runs `code-warden scope add` itself via the shell,
+that command is visible in your session and the expansion is recorded in
+`expansions[]` - the lock makes scope creep auditable, not impossible.
+Analogously, `git commit --no-verify` bypasses the git pre-commit backstop.
 
 ## Project-Level Configuration
 

@@ -272,7 +272,7 @@ test('install-hooks: buildMatcherGroups covers files and commands', () => {
   assert.equal(groups[1].matcher, 'Bash|PowerShell');
 
   const all = groups.flatMap(g => g.hooks);
-  assert.equal(all.length, 3);
+  assert.equal(all.length, 4);
   for (const h of all) {
     assert.equal(h.type, 'command');
     assert.equal(h.command, 'node');
@@ -280,6 +280,8 @@ test('install-hooks: buildMatcherGroups covers files and commands', () => {
     assert.ok(String(h.description).startsWith('code-warden:'), 'marker prefix required');
     assert.ok(fs.existsSync(path.join(HOOKS, path.basename(h.args[0]))), `hook script exists: ${h.args[0]}`);
   }
+  assert.equal(path.basename(groups[0].hooks[2].args[0]), 'warden-scope-hook.js');
+  assert.equal(groups[0].hooks[2].description, 'code-warden: scope lock gate');
   assert.equal(path.basename(groups[1].hooks[0].args[0]), 'warden-command-hook.js');
   assert.equal(groups[1].hooks[0].description, 'code-warden: command secrets gate');
 });

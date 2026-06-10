@@ -12,6 +12,7 @@ const { loadConfig }        = require('./lib/config');
 const { matchesAnyPrefix }  = require('./lib/path-match');
 const { formatSarif }       = require('./lib/sarif');
 const { loadRiskPolicy }    = require('./lib/risk-policy');
+const { getScopeSummary }   = require('./lib/scope-store');
 const { formatMarkdown, formatSummary } = require('./lib/report-format');
 const { createBaseline, loadBaseline, applyBaselineToChecks,
         hashLine, DEFAULT_BASELINE }    = require('./lib/baseline');
@@ -185,6 +186,8 @@ function checkInstallHealth() {
     'tools/warden-lint.js',
     'tools/verify-secrets.js',
     'tools/get-context.js',
+    'tools/scope.js',
+    'tools/hooks/claude/warden-scope-hook.js',
   ];
   const missing = required.filter(f => !fs.existsSync(path.join(ROOT, f)));
   return {
@@ -260,6 +263,9 @@ function generateReport(scanPath, configPath, baseline, baselinePath) {
   const installHealth = checkInstallHealth();
   const runtimeHooks = checkRuntimeHooks();
   const riskPolicy = loadRiskPolicy();
+  // Scope Lock is per-repo and opt-in: report 'locked' only when the scanned
+  // repository actually has a .code-warden/scope.json.
+  const scope = getScopeSummary(path.resolve(scanPath));
 
   const checks = { fileLength, secrets, behavioralTests, installHealth, riskPolicy };
   const result = Object.values(checks).every(c => c.status === 'pass' || c.status === 'skip')
@@ -273,7 +279,10 @@ function generateReport(scanPath, configPath, baseline, baselinePath) {
     checks,
     ...(baselineInfo ? { baseline: baselineInfo } : {}),
     governance: {
-      scopeGate: 'session_only',
+      scopeGate: scope
+        ? { status: 'locked', goal: scope.goal, filesIn: scope.filesIn.length,
+            enforce: scope.enforce }
+        : 'session_only',
       planGate: 'session_only',
       runtimeHooks,
       riskPolicy: {

@@ -66,6 +66,7 @@
     }
   },
   "risk_policy": {
+    "command_rules": [],
     "actions": {
       "read_only": {
         "tier": "low",

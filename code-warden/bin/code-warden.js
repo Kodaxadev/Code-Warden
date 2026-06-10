@@ -11,6 +11,7 @@ const COMMANDS = {
   doctor:  { desc: 'Verify source integrity and install health',  run: ['install.js', '--doctor'] },
   report:  { desc: 'Generate governance report (.code-warden-report.json)', run: ['tools/governance-report.js', '.'] },
   receipt: { desc: 'Create or validate governance receipt artifacts', run: ['tools/receipt.js'] },
+  scope:   { desc: 'Manage the scope lock (.code-warden/scope.json)',  run: ['tools/scope.js'] },
   references: { desc: 'Recommend governance references for paths', run: ['tools/select-references.js'] },
   'smoke-npx': { desc: 'Smoke-test npm package from a clean temp directory', run: ['tools/smoke-npx.js'] },
   list:    { desc: 'Show detected AI runtimes',                   run: ['install.js', '--list'] },
@@ -37,6 +38,9 @@ function usage() {
   console.log(`  npx code-warden report --format=sarif --out=code-warden.sarif`);
   console.log(`  npx code-warden receipt --template --out=code-warden-receipt.json`);
   console.log(`  npx code-warden receipt --validate=code-warden-receipt.json`);
+  console.log(`  npx code-warden scope set --goal="Fix auth bug" src/ lib/utils.js`);
+  console.log(`  npx code-warden scope add src/middleware.js`);
+  console.log(`  npx code-warden scope status`);
   console.log(`  npx code-warden references README.md code-warden/tools/`);
   console.log(`  npx code-warden smoke-npx --package=code-warden@latest`);
   console.log(`  npx code-warden hooks claude`);

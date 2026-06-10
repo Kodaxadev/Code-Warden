@@ -15,6 +15,8 @@ const TESTS = [
   'hook-coverage-tests.js',
   'git-hook-tests.js',
   'baseline-tests.js',
+  'scope-tests.js',
+  'command-risk-tests.js',
 ];
 
 let failed = false;

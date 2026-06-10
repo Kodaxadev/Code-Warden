@@ -21,6 +21,7 @@ const { scanForSecrets }     = require('../../lib/secret-patterns');
 const { countLines }         = require('../../lib/line-count');
 const { loadConfig }         = require('../../lib/config');
 const { matchesProjectPath } = require('../../lib/path-match');
+const { checkScopeDenial }   = require('../../lib/scope-store');
 
 // Discover the governed project's codewarden.json from the working directory
 // (Codex payloads do not carry cwd); falls back to the skill-dir default.
@@ -118,6 +119,11 @@ process.stdin.on('end', () => {
       deny(`Blocked apply_patch — resulting file would be ~${estimated} lines (limit ${maxLines}). Break it up first.`);
     }
   }
+
+  // --- Scope Lock (opt-in via .code-warden/scope.json; shared with the
+  // Claude write hooks through lib/scope-store so semantics never drift) ---
+  const scopeDenial = checkScopeDenial(targetPath, BASE_DIR);
+  if (scopeDenial) deny(scopeDenial);
 
   process.exit(0);
 });

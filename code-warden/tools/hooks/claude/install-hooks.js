@@ -72,6 +72,8 @@ function buildMatcherGroups(skillDir) {
       hooks: [
         buildHookEntry(skillDir, 'warden-lint-hook.js',    'code-warden: file length gate'),
         buildHookEntry(skillDir, 'warden-secrets-hook.js', 'code-warden: zero-trust secrets gate'),
+        // Always registered; silently no-ops until a scope file exists.
+        buildHookEntry(skillDir, 'warden-scope-hook.js',   'code-warden: scope lock gate'),
       ],
     },
     {
@@ -94,6 +96,7 @@ function installHooks(skillDir) {
     path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-lint-hook.js'),
     path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-secrets-hook.js'),
     path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-command-hook.js'),
+    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-scope-hook.js'),
   ];
   for (const p of required) {
     if (!fs.existsSync(p)) {
