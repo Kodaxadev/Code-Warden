@@ -194,6 +194,22 @@ test('scope hook: no scope file allows silently', () => {
   }
 });
 
+test('scope hook: .code-warden/ writes are denied even with NO scope file', () => {
+  const root = makeRepo();
+  try {
+    for (const file of ['.code-warden/scope.json', '.code-warden/audit.jsonl']) {
+      const { code, stdout } = runHook(SCOPE_HOOK, writePayload(root, file));
+      assert.equal(code, 2, `${file} must deny without any scope lock`);
+      assert.match(claudeReason(stdout), /Governance artifacts under \.code-warden\/ are user-managed/);
+    }
+    // Segment match only: a plain 'code-warden' dir (no dot) is NOT protected
+    const allowed = runHook(SCOPE_HOOK, writePayload(root, 'code-warden/tool.js'));
+    assert.equal(allowed.code, 0, 'dotless code-warden directories stay writable');
+  } finally {
+    cleanup(root);
+  }
+});
+
 test('scope hook: in-scope allows, out-of-scope denies with expansion hint', () => {
   const root = makeRepo();
   try {
@@ -223,7 +239,7 @@ test('scope hook: enforce:false allows, but self-protection still denies', () =>
 
     const denied = runHook(SCOPE_HOOK, writePayload(root, '.code-warden/scope.json'));
     assert.equal(denied.code, 2, 'scope file is protected even when enforce is false');
-    assert.match(claudeReason(denied.stdout), /Scope file is user-controlled|scope file is user-controlled/);
+    assert.match(claudeReason(denied.stdout), /\.code-warden\/ are user-managed/);
   } finally {
     cleanup(root);
   }
@@ -290,6 +306,24 @@ test('codex patch hook: out-of-scope target denies, in-scope passes', () => {
       cwd: root,
     });
     assert.equal(allowed.status, 0, 'in-scope patch must pass');
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('codex patch hook: .code-warden/ target denies even with NO scope file', () => {
+  const root = makeRepo();
+  try {
+    const denied = spawnSync(process.execPath, [PATCH_HOOK], {
+      input: JSON.stringify({
+        tool: 'apply_patch',
+        toolInput: { patch: patchFor('.code-warden/scope.json') },
+      }),
+      encoding: 'utf8',
+      cwd: root,
+    });
+    assert.equal(denied.status, 2, 'governance artifacts deny without a scope lock');
+    assert.match(JSON.parse(denied.stdout).message, /\.code-warden\/ are user-managed/);
   } finally {
     cleanup(root);
   }

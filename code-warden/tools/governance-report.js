@@ -5,17 +5,15 @@ const fs            = require('fs');
 const path          = require('path');
 const os            = require('os');
 const { spawnSync } = require('child_process');
-const { countLines }        = require('./lib/line-count');
-const { collectFiles }      = require('./lib/file-collection');
-const { scanForAllSecrets } = require('./lib/secret-patterns');
-const { loadConfig }        = require('./lib/config');
-const { matchesAnyPrefix }  = require('./lib/path-match');
 const { formatSarif }       = require('./lib/sarif');
 const { loadRiskPolicy }    = require('./lib/risk-policy');
 const { getScopeSummary }   = require('./lib/scope-store');
+const { gitInfo }           = require('./lib/git-info');
+const { runScans: runScanCore }         = require('./lib/scan-core');
+const { collectMarkedEntries }          = require('./lib/hook-events');
 const { formatMarkdown, formatSummary } = require('./lib/report-format');
 const { createBaseline, loadBaseline, applyBaselineToChecks,
-        hashLine, DEFAULT_BASELINE }    = require('./lib/baseline');
+        DEFAULT_BASELINE }              = require('./lib/baseline');
 
 const ROOT    = path.join(__dirname, '..');
 const PKG     = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -49,89 +47,17 @@ function parseArgs(argv) {
 }
 
 // ---------------------------------------------------------------------------
-// Git metadata
-// ---------------------------------------------------------------------------
-
-function gitInfo() {
-  const run = (gitArgs) => {
-    const r = spawnSync('git', gitArgs, { encoding: 'utf8', timeout: 5000 });
-    return r.status === 0 ? r.stdout.trim() : null;
-  };
-  return {
-    branch: run(['rev-parse', '--abbrev-ref', 'HEAD']),
-    commit: run(['rev-parse', '--short', 'HEAD']),
-  };
-}
-
-// ---------------------------------------------------------------------------
-// File length + secrets (single pass over all files)
+// File length + secrets (single pass; core shared with the Stop hook via
+// lib/scan-core.js)
 // ---------------------------------------------------------------------------
 
 function runScans(scanPath, configPath) {
-  const { maxFileLength, lintExcludePaths, secretsAllowlist } = loadConfig(configPath);
-  const resolved = path.resolve(scanPath);
-
-  if (!fs.existsSync(resolved)) {
-    console.error(`[CodeWarden] Error: scan path not found: ${scanPath}`);
+  try {
+    return runScanCore(scanPath, configPath);
+  } catch (err) {
+    console.error(`[CodeWarden] Error: ${err.message}`);
     process.exit(1);
   }
-
-  const files = [];
-  const scanRootIsDirectory = fs.statSync(resolved).isDirectory();
-  if (scanRootIsDirectory) {
-    collectFiles(resolved, files);
-  } else {
-    files.push(resolved);
-  }
-
-  const lengthViolations = [];
-  const secretViolations = [];
-
-  for (const f of files) {
-    let content;
-    try { content = fs.readFileSync(f, 'utf8'); } catch { continue; }
-
-    const rel = scanRootIsDirectory ? path.relative(resolved, f) : path.basename(f);
-
-    if (!matchesAnyPrefix(rel, lintExcludePaths)) {
-      const lineCount = countLines(content);
-      if (lineCount > maxFileLength) {
-        lengthViolations.push({ file: rel, lines: lineCount, limit: maxFileLength });
-      }
-    }
-
-    if (!matchesAnyPrefix(rel, secretsAllowlist)) {
-      const hits = scanForAllSecrets(content);
-      if (hits.length > 0) {
-        // Split matches locationForIndex() in secret-patterns ('\n' only);
-        // hashLine() trims, so stray '\r' never affects the fingerprint.
-        const sourceLines = content.split('\n');
-        for (const hit of hits) {
-          secretViolations.push({
-            file: rel, pattern: hit.label, line: hit.line, column: hit.column,
-            // Content fingerprint of the matched line for baseline matching.
-            // Never the raw text - line numbers drift, hashes survive moves.
-            contextHash: hashLine(sourceLines[hit.line - 1] || ''),
-          });
-        }
-      }
-    }
-  }
-
-  return {
-    fileLength: {
-      status: lengthViolations.length === 0 ? 'pass' : 'fail',
-      filesScanned: files.length,
-      violations: lengthViolations.length,
-      details: lengthViolations.length > 0 ? lengthViolations : undefined,
-    },
-    secrets: {
-      status: secretViolations.length === 0 ? 'pass' : 'fail',
-      filesScanned: files.length,
-      violations: secretViolations.length,
-      details: secretViolations.length > 0 ? secretViolations : undefined,
-    },
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +77,7 @@ function checkTests() {
 
   const r = spawnSync(process.execPath, [testScript], {
     encoding: 'utf8',
-    timeout: 30000,
+    timeout: 60000, // raised from 30000: suite growth (audit/lifecycle/receipt-audit tests)
     cwd: ROOT,
   });
 
@@ -188,6 +114,7 @@ function checkInstallHealth() {
     'tools/get-context.js',
     'tools/scope.js',
     'tools/hooks/claude/warden-scope-hook.js',
+    'tools/hooks/claude/warden-audit-hook.js',
   ];
   const missing = required.filter(f => !fs.existsSync(path.join(ROOT, f)));
   return {
@@ -208,9 +135,8 @@ function checkRuntimeHooks() {
   if (fs.existsSync(claudeSettings)) {
     try {
       const s = JSON.parse(fs.readFileSync(claudeSettings, 'utf8'));
-      const hooks = (s?.hooks?.PreToolUse || [])
-        .flatMap(m => m.hooks || [])
-        .filter(h => String(h.description || '').startsWith('code-warden:'));
+      // All managed event arrays (PreToolUse/PostToolUse/SessionStart/Stop).
+      const hooks = collectMarkedEntries(s?.hooks);
       if (hooks.length > 0) {
         const valid = hooks.every(h => h.args?.[0] && fs.existsSync(h.args[0]));
         result.claude = valid ? 'registered' : 'registered_broken';

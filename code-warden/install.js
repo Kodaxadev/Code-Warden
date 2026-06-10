@@ -27,6 +27,7 @@ const { scanTargets }       = require('./tools/auto-detect');
 const { installWindsurf }   = require('./tools/auto-windsurf-adapter');
 const { getCodexHookRepairHint, inspectHookEntries, inspectHooksFeature } = require('./tools/lib/codex-config');
 const { dispatchHooks, verifyGitHooks } = require('./tools/lib/hook-dispatch');
+const { collectMarkedEntries } = require('./tools/lib/hook-events');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -160,10 +161,6 @@ function parseArgs(argv) {
 }
 
 // ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Doctor helpers — shared by --doctor and --verify-target
 // ---------------------------------------------------------------------------
 
@@ -211,7 +208,7 @@ function checkTarget(t, issues) {
     if (t.id === 'claude') {
       const sp = path.join(t.skillsDir, '..', 'settings.json');
       if (fs.existsSync(sp)) { try {
-        const cw=(JSON.parse(fs.readFileSync(sp,'utf8'))?.hooks?.PreToolUse||[]).flatMap(m=>m.hooks||[]).filter(h=>String(h.description||'').startsWith('code-warden:'));
+        const cw=collectMarkedEntries(JSON.parse(fs.readFileSync(sp,'utf8'))?.hooks); // all managed events
         if(cw.length>0){check(`    Hooks registered (${cw.length})`,true);cw.forEach(h=>{const p=h.args&&h.args[0];check(`    Hook script: ${path.basename(p||'?')}`,!!(p&&fs.existsSync(p)));});}
       } catch { fail('    settings.json parse error'); issues.push('claude: settings.json'); } }
     }

@@ -17,6 +17,9 @@ const TESTS = [
   'baseline-tests.js',
   'scope-tests.js',
   'command-risk-tests.js',
+  'audit-ledger-tests.js',
+  'lifecycle-hook-tests.js',
+  'receipt-audit-tests.js',
 ];
 
 let failed = false;

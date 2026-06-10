@@ -185,9 +185,29 @@ function scopeDenialMessage(verdict, scope) {
 }
 
 /**
- * One-call check used by the write hooks: discovers the scope from startDir,
- * evaluates filePath, and returns a deny message or null. Missing or
- * unparseable scope files always allow (Scope Lock is strictly opt-in).
+ * True when the resolved target path contains a '.code-warden' path SEGMENT.
+ * Segment equality means this repo's 'code-warden' directory (no leading
+ * dot) never matches. Used for the UNCONDITIONAL write protection of
+ * governance artifacts (scope.json, audit.jsonl) - they are CLI/user
+ * managed, never agent-edited, even when no scope lock exists.
+ *
+ * @param {string} filePath - Target path from a tool payload
+ * @param {string} [baseDir] - Base for resolving relative paths
+ * @returns {boolean}
+ */
+function isGovernanceArtifactPath(filePath, baseDir) {
+  if (!filePath) return false;
+  const abs = path.resolve(baseDir || process.cwd(), filePath);
+  return abs.split(/[\\/]+/).some(segment => segment === SCOPE_DIR);
+}
+
+/**
+ * One-call check used by the write hooks. Two layers:
+ *   1. UNCONDITIONAL: any target under a .code-warden/ segment is denied,
+ *      scope lock or not - agents must not hand-edit governance artifacts.
+ *   2. Opt-in scope lock: discovers the scope from startDir, evaluates
+ *      filePath, and returns a deny message or null. Missing or unparseable
+ *      scope files always allow.
  *
  * @param {string} filePath - Target path from a tool payload
  * @param {string} startDir - Hook working directory (payload.cwd or cwd)
@@ -195,6 +215,11 @@ function scopeDenialMessage(verdict, scope) {
  */
 function checkScopeDenial(filePath, startDir) {
   if (!filePath) return null;
+  if (isGovernanceArtifactPath(filePath, startDir)) {
+    return 'Governance artifacts under .code-warden/ are user-managed ' +
+      '(scope.json, audit.jsonl). Use the code-warden CLI instead of ' +
+      'editing these files.';
+  }
   const found = findScopeFile(startDir);
   if (!found) return null;
   const scope = loadScope(found.scopePath);
@@ -228,5 +253,5 @@ module.exports = {
   SCOPE_DIR, SCOPE_FILE,
   scopePathFor, findScopeFile, loadScope, saveScope, createScope,
   normalizeScopeEntry, evaluateScope, scopeDenialMessage,
-  checkScopeDenial, getScopeSummary,
+  isGovernanceArtifactPath, checkScopeDenial, getScopeSummary,
 };

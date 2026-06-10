@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
  * uninstall-hooks.js
- * Removes all code-warden hook entries from ~/.claude/settings.json.
- * Identified by description prefix "code-warden:".
- * Cleans up empty PreToolUse arrays and empty hooks objects after removal.
+ * Removes all code-warden hook entries from ~/.claude/settings.json across
+ * every managed event array (PreToolUse, PostToolUse, SessionStart, Stop).
+ * Identified by description prefix "code-warden:". Non-code-warden entries
+ * are preserved; empty event arrays and an empty hooks object are cleaned up.
  */
 
 'use strict';
@@ -12,7 +13,8 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-const MARKER_PREFIX = 'code-warden:';
+const { removeMarkedEntries } = require('../../lib/hook-events');
+
 const SETTINGS_PATH = path.join(os.homedir(), '.claude', 'settings.json');
 
 function readSettings() {
@@ -34,38 +36,21 @@ function uninstallHooks() {
   const settings = readSettings();
 
   if (!settings) {
-    console.log('[CodeWarden]   No settings.json found — nothing to remove.');
+    console.log('[CodeWarden]   No settings.json found - nothing to remove.');
     return false;
   }
 
-  if (!settings.hooks || !settings.hooks.PreToolUse) {
-    console.log('[CodeWarden]   No PreToolUse hooks in settings.json — nothing to remove.');
+  if (!settings.hooks) {
+    console.log('[CodeWarden]   No hooks in settings.json - nothing to remove.');
     return false;
   }
 
-  const before  = settings.hooks.PreToolUse;
-  const cleaned = before
-    .map(matcher => ({
-      ...matcher,
-      hooks: (matcher.hooks || []).filter(
-        h => !String(h.description || '').startsWith(MARKER_PREFIX)
-      ),
-    }))
-    .filter(matcher => (matcher.hooks || []).length > 0);
-
-  const removedMatchers = before.length - cleaned.length;
-  const removedHooks    = before.flatMap(m => m.hooks || []).filter(
-    h => String(h.description || '').startsWith(MARKER_PREFIX)
-  ).length;
+  const removedHooks = removeMarkedEntries(settings);
 
   if (removedHooks === 0) {
-    console.log('[CodeWarden]   No code-warden hook entries found — nothing to remove.');
+    console.log('[CodeWarden]   No code-warden hook entries found - nothing to remove.');
     return false;
   }
-
-  settings.hooks.PreToolUse = cleaned;
-  if (cleaned.length === 0)                      delete settings.hooks.PreToolUse;
-  if (Object.keys(settings.hooks).length === 0)  delete settings.hooks;
 
   writeSettings(settings);
   console.log(`[CodeWarden]   Removed ${removedHooks} hook entry(ies) from settings.json.`);

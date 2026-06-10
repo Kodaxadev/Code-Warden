@@ -120,8 +120,10 @@ process.stdin.on('end', () => {
     }
   }
 
-  // --- Scope Lock (opt-in via .code-warden/scope.json; shared with the
-  // Claude write hooks through lib/scope-store so semantics never drift) ---
+  // --- Governance artifact protection + Scope Lock (shared with the Claude
+  // write hooks through lib/scope-store so semantics never drift): targets
+  // under a .code-warden/ segment are ALWAYS denied, even with no scope.json;
+  // the scope lock itself stays opt-in. ---
   const scopeDenial = checkScopeDenial(targetPath, BASE_DIR);
   if (scopeDenial) deny(scopeDenial);
 

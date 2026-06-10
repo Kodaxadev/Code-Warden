@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 /**
  * install-hooks.js
- * Merges code-warden PreToolUse hook entries into ~/.claude/settings.json.
+ * Merges code-warden hook entries into ~/.claude/settings.json across every
+ * managed event array: PreToolUse (gates), PostToolUse (audit ledger),
+ * SessionStart (context injection), and Stop (opt-in verification).
  *
  * Idempotent: removes any existing code-warden entries by description marker,
- * then inserts current entries. Replace, not skip — ensures paths stay current
- * after reinstalls or version moves.
+ * then inserts current entries. Replace, not skip - ensures paths stay current
+ * after reinstalls or version moves. Non-code-warden entries are preserved
+ * in every event array.
  *
  * Requires the skill to already be installed at skillDir before writing
- * settings — avoids dangling settings pointing at a missing skill directory.
+ * settings - avoids dangling settings pointing at a missing skill directory.
  */
 
 'use strict';
@@ -17,8 +20,9 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-const MARKER_PREFIX  = 'code-warden:';
-const SETTINGS_PATH  = path.join(os.homedir(), '.claude', 'settings.json');
+const { stripEventGroups, applyEventGroups } = require('../../lib/hook-events');
+
+const SETTINGS_PATH = path.join(os.homedir(), '.claude', 'settings.json');
 
 // ---------------------------------------------------------------------------
 // Settings I/O
@@ -44,16 +48,8 @@ function writeSettings(settings) {
 // Hook entry helpers
 // ---------------------------------------------------------------------------
 
-function stripCodeWardenHooks(preToolUse) {
-  return preToolUse
-    .map(matcher => ({
-      ...matcher,
-      hooks: (matcher.hooks || []).filter(
-        h => !String(h.description || '').startsWith(MARKER_PREFIX)
-      ),
-    }))
-    .filter(matcher => (matcher.hooks || []).length > 0);
-}
+// Back-compat alias: PreToolUse-era name, now shared multi-event logic.
+const stripCodeWardenHooks = stripEventGroups;
 
 function buildHookEntry(skillDir, file, description) {
   return {
@@ -65,6 +61,7 @@ function buildHookEntry(skillDir, file, description) {
   };
 }
 
+/** PreToolUse matcher groups (kept as its own export for older callers). */
 function buildMatcherGroups(skillDir) {
   return [
     {
@@ -85,18 +82,53 @@ function buildMatcherGroups(skillDir) {
   ];
 }
 
+/** All managed events with their code-warden matcher groups. */
+function buildEventGroups(skillDir) {
+  return {
+    PreToolUse: buildMatcherGroups(skillDir),
+    PostToolUse: [
+      {
+        matcher: 'Write|Edit|NotebookEdit|Bash|PowerShell',
+        hooks: [
+          // Advisory: appends to the tamper-evident ledger, never blocks.
+          buildHookEntry(skillDir, 'warden-audit-hook.js', 'code-warden: audit ledger'),
+        ],
+      },
+    ],
+    SessionStart: [
+      {
+        matcher: 'startup|resume|clear',
+        hooks: [
+          buildHookEntry(skillDir, 'warden-session-hook.js', 'code-warden: session context'),
+        ],
+      },
+    ],
+    Stop: [
+      {
+        // No matcher: Stop fires once per stop event. Inert until
+        // codewarden.json sets session.verify_on_stop true.
+        hooks: [
+          buildHookEntry(skillDir, 'warden-stop-hook.js', 'code-warden: stop verification'),
+        ],
+      },
+    ],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Install
 // ---------------------------------------------------------------------------
 
 function installHooks(skillDir) {
   // Guard: skill must be installed before settings are written
+  const hookScripts = [
+    'warden-lint-hook.js', 'warden-secrets-hook.js', 'warden-command-hook.js',
+    'warden-scope-hook.js', 'warden-audit-hook.js', 'warden-session-hook.js',
+    'warden-stop-hook.js',
+  ];
   const required = [
     path.join(skillDir, 'SKILL.md'),
-    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-lint-hook.js'),
-    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-secrets-hook.js'),
-    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-command-hook.js'),
-    path.join(skillDir, 'tools', 'hooks', 'claude', 'warden-scope-hook.js'),
+    ...hookScripts.map(f => path.join(skillDir, 'tools', 'hooks', 'claude', f)),
   ];
   for (const p of required) {
     if (!fs.existsSync(p)) {
@@ -107,19 +139,12 @@ function installHooks(skillDir) {
     }
   }
 
-  const settings  = readSettings();
-  settings.hooks  = settings.hooks || {};
-  const existing  = settings.hooks.PreToolUse || [];
-
-  // Remove stale code-warden entries, then append fresh matcher groups
-  const cleaned   = stripCodeWardenHooks(existing);
-  settings.hooks.PreToolUse = [
-    ...cleaned,
-    ...buildMatcherGroups(skillDir),
-  ];
-
+  const settings = readSettings();
+  applyEventGroups(settings, buildEventGroups(skillDir));
   writeSettings(settings);
   return SETTINGS_PATH;
 }
 
-module.exports = { installHooks, stripCodeWardenHooks, buildMatcherGroups };
+module.exports = {
+  installHooks, stripCodeWardenHooks, buildMatcherGroups, buildEventGroups,
+};

@@ -37,6 +37,7 @@ function usage() {
   console.log(`  npx code-warden report --format=md`);
   console.log(`  npx code-warden report --format=sarif --out=code-warden.sarif`);
   console.log(`  npx code-warden receipt --template --out=code-warden-receipt.json`);
+  console.log(`  npx code-warden receipt --from-audit --out=code-warden-receipt.json`);
   console.log(`  npx code-warden receipt --validate=code-warden-receipt.json`);
   console.log(`  npx code-warden scope set --goal="Fix auth bug" src/ lib/utils.js`);
   console.log(`  npx code-warden scope add src/middleware.js`);

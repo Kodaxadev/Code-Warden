@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
  * warden-scope-hook.js
- * PreToolUse Claude Code hook: enforces the opt-in Scope Lock for
- * Write/Edit/NotebookEdit. Walks up from payload.cwd looking for
- * .code-warden/scope.json (stopping at the .git boundary, same rule as
- * config discovery). No scope file, an unparseable file, or enforce:false
- * means allow - Scope Lock is strictly opt-in and silently no-ops.
+ * PreToolUse Claude Code hook for Write/Edit/NotebookEdit. Two layers
+ * (both via lib/scope-store checkScopeDenial):
  *
- * Self-protection comes first: edits to the scope file itself (or anything
- * under .code-warden/) are denied even when enforce is false, so the agent
- * cannot expand its own scope. Expansion goes through the user-run CLI:
- * code-warden scope add <path>.
+ *   1. UNCONDITIONAL: any target containing a '.code-warden' path segment
+ *      is denied even when no scope.json exists - governance artifacts
+ *      (scope.json, audit.jsonl) are CLI/user-managed, never agent-edited.
+ *   2. Opt-in Scope Lock: walks up from payload.cwd looking for
+ *      .code-warden/scope.json (stopping at the .git boundary, same rule
+ *      as config discovery). No scope file, an unparseable file, or
+ *      enforce:false means allow - the lock is strictly opt-in.
+ *
+ * Scope expansion goes through the user-run CLI: code-warden scope add.
  *
  * Payload (stdin JSON):  { tool_name, tool_input: { file_path, ... }, cwd }
  * On violation: exit 2 + JSON deny response to stdout.

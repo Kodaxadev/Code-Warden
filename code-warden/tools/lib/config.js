@@ -81,8 +81,12 @@ function findProjectConfig(startDir) {
  * @param {string} [startDir] - Enables project config discovery from this dir
  * @returns {{ maxFileLength: number, preFlightTriggerLines: number,
  *             lintExcludePaths: string[], secretsAllowlist: string[],
- *             commandRules: object[], projectRoot: string|null }}
+ *             commandRules: object[], auditEnabled: boolean|null,
+ *             verifyOnStop: boolean, projectRoot: string|null }}
  * commandRules is the raw risk_policy.command_rules array (uncompiled);
+ * auditEnabled is tri-state: true/false when audit.enabled is explicitly
+ * set, null when absent (the audit ledger then follows the scope lock);
+ * verifyOnStop reflects session.verify_on_stop (default false);
  * projectRoot is non-null only when a project config was discovered via
  * startDir.
  */
@@ -104,6 +108,8 @@ function loadConfig(configPath, startDir) {
   let lintExcludePaths      = [];
   let secretsAllowlist      = [];
   let commandRules          = [];
+  let auditEnabled          = null;
+  let verifyOnStop          = false;
 
   try {
     const raw = fs.readFileSync(target, 'utf8');
@@ -129,12 +135,19 @@ function loadConfig(configPath, startDir) {
         r => r && typeof r === 'object' && !Array.isArray(r)
       );
     }
+    if (typeof cfg?.audit?.enabled === 'boolean') {
+      auditEnabled = cfg.audit.enabled;
+    }
+    if (cfg?.session?.verify_on_stop === true) {
+      verifyOnStop = true;
+    }
   } catch {
     // Missing or invalid config — use defaults
   }
 
   return { maxFileLength, preFlightTriggerLines, lintExcludePaths,
-           secretsAllowlist, commandRules, projectRoot };
+           secretsAllowlist, commandRules, auditEnabled, verifyOnStop,
+           projectRoot };
 }
 
 module.exports = { loadConfig, findProjectConfig, findUpward, DEFAULT_CONFIG_PATH };
