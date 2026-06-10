@@ -41,7 +41,7 @@ Located at the root of the skill folder. Default configuration:
 | `session.verify_on_stop` | `false` | hook | Opt-in Stop verification (Claude). When `true`, the Stop hook re-scans the project for fresh file-length/secret violations before the session may finish. Off by default - the hook is registered but inert. |
 | `.code-warden/scope.json` (managed via `code-warden scope`) | not set | hook | Opt-in Scope Lock. When present with `"enforce": true`, write hooks (Claude Write/Edit/NotebookEdit, Codex apply_patch) deny edits outside the declared `filesIn` paths. No file means no enforcement. Everything under `.code-warden/` is write-protected from agents unconditionally - scope lock or not. |
 
-"Enforced by" legend: **hook** = runtime PreToolUse hooks, **CI** = `warden-lint.js` / `verify-secrets.js` / `governance-report.js`, **prompt** = governance protocol text only (the agent is instructed to comply, but nothing blocks it at runtime).
+"Enforced by" legend: **hook** = runtime lifecycle hooks (PreToolUse gates, PostToolUse audit, SessionStart context, Stop verification), **CI** = `warden-lint.js` / `verify-secrets.js` / `governance-report.js`, **prompt** = governance protocol text only (the agent is instructed to comply, but nothing blocks it at runtime).
 
 ---
 
@@ -78,6 +78,51 @@ Honest limits: if the agent runs `code-warden scope add` itself via the shell,
 that command is visible in your session and the expansion is recorded in
 `expansions[]` - the lock makes scope creep auditable, not impossible.
 Analogously, `git commit --no-verify` bypasses the git pre-commit backstop.
+
+## Command Risk Gate Defaults
+
+The command hooks (Claude `Bash`/`PowerShell`, Codex `Bash`) classify commands
+against these built-in rules. `blocked` denies; `high` asks for confirmation
+on Claude and allows silently on Codex (no ask equivalent there).
+
+| Rule id | Tier | Matches |
+|---------|------|---------|
+| `rm_rf_root` | blocked | `rm -rf` of `/`, `~`, `.`, `..`, `*`, `.git`, or a drive root |
+| `rd_root` | blocked | `rd`/`rmdir /s` of a drive root |
+| `remove_item_root` | blocked | `Remove-Item -Recurse -Force` of a critical root path |
+| `git_reset_hard` | blocked | `git reset --hard` |
+| `git_push_force` | blocked | `git push --force`/`-f` (`--force-with-lease` exempt) |
+| `git_clean_force` | blocked | `git clean -f` |
+| `git_history_rewrite` | blocked | `git filter-branch` / `filter-repo` |
+| `curl_pipe_shell` | blocked | `curl`/`wget` piped into a shell |
+| `ps_web_pipe_iex` | blocked | `iwr`/`irm` piped into `Invoke-Expression` |
+| `chmod_777_root` | blocked | `chmod -R 777 /` |
+| `package_install` | high | Dependency add/remove/update (bare `npm install`/`ci` allowed) |
+| `npm_publish` | high | `npm`/`pnpm`/`yarn`/`bun publish` |
+| `git_push` | high | Any `git push` |
+| `recursive_delete` | high | Any recursive delete (`rm -r`, `rd /s`) |
+| `remove_item_recurse` | high | Any `Remove-Item -Recurse -Force` |
+| `git_discard_changes` | high | `git checkout --` / `git restore` (working-tree discard) |
+
+Override in `risk_policy.command_rules`: reuse a default `id` to replace its
+pattern/tier/message, set `"tier": "off"` (or `"allow"`) to disable it, or add
+new rules with your own `pattern`. Invalid user patterns are skipped with a
+warning — a broken regex never widens or traps the gate.
+
+## Baseline Ratchet (brownfield repos)
+
+```
+npx code-warden report --write-baseline
+git add .code-warden-baseline.json
+npx code-warden report --baseline
+```
+
+With `--baseline`, only NEW or WORSENED violations fail; legacy findings are
+counted separately. A baselined file fails again when it grows past its
+recorded line count. Secrets are fingerprinted by sha256 of the trimmed
+matched line - the baseline never stores raw secret text. A missing baseline
+file is a hard error. The git pre-commit backstop and the Stop hook are also
+baseline-aware.
 
 ## Audit Ledger
 

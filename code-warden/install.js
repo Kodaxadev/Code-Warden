@@ -13,7 +13,7 @@
  *   node install.js --verify-target=claude       # strict health check for one target; exits nonzero if unknown or not installed
  *   node install.js --verify-target=claude,warp  # check multiple targets
  *   node install.js --target=claude,cursor       # force specific targets (warns if not detected)
- *   node install.js --hooks=claude               # install PreToolUse hooks into ~/.claude/settings.json
+ *   node install.js --hooks=claude               # install lifecycle hooks (PreToolUse/PostToolUse/SessionStart/Stop) into ~/.claude/settings.json
  *   node install.js --hooks=git                  # install per-repo pre-commit backstop (repo at cwd)
  *   node install.js --uninstall-hooks=claude     # remove code-warden hook entries from ~/.claude/settings.json
  */

@@ -12,9 +12,20 @@ description: >
   or any request to begin writing code.
 metadata:
   author: Justin Davis
-  version: 3.4.0
+  version: 4.0.0
   category: development-governance
   changelog: |
+    v4.0.0 (2026-06-10): Enforcement layers. Scope Lock CLI (`code-warden scope`)
+      mechanically denies out-of-scope writes; Command Risk Gate denies destructive
+      shell commands and asks on high-risk ones; hash-chained audit ledger
+      (.code-warden/audit.jsonl) corroborates receipts via `receipt --from-audit`;
+      baseline ratchet (`report --write-baseline` / `--baseline`) gates brownfield
+      repos on new violations only; `hooks git` installs a per-repo pre-commit
+      backstop; SessionStart context injection and opt-in Stop verification;
+      hooks read the governed project's codewarden.json; six new secret patterns.
+      Breaking: report scopeGate is an object when a scope lock exists;
+      .code-warden/ is agent-write-protected unconditionally; re-run
+      `code-warden hooks claude` / `hooks codex` to register the new gates.
     v3.4.0 (2026-05-19): Governance receipts, evidence providers, reference
       selection, risk policy, MCP governance, SARIF output, and Code Scanning
       integration. Added receipt --template, receipt --validate, references <paths...>,
@@ -71,7 +82,7 @@ metadata:
     v2.0.0: Initial production release.
 ---
 
-# code-warden v3.4.0
+# code-warden v4.0.0
 
 Production-grade AI development governance skill.
 Load at the start of every session involving code generation, refactoring,
@@ -136,7 +147,11 @@ information above.
 ## Quick Rules
 
 - **Scope Gate**: Required before every session. Declare goal, non-goals, files in/out, verify commands, rollback plan. See `references/planning-gates.md`.
+- **Scope Lock**: Ask the user to run `code-warden scope set --goal="..." <paths...>` after the Scope Gate is confirmed. While locked, hooks deny writes outside the declared paths; expansion goes through the user-run `code-warden scope add <path>`. Never edit `.code-warden/` directly — hooks deny it unconditionally.
 - **Plan Gate**: Required before any multi-file or >30-line change. Declare patch order, blast radius class, post-patch checks. See `references/planning-gates.md`.
+- **Command risk**: Destructive commands (force push, hard reset, recursive root delete, pipe-to-shell) are denied by the Command Risk Gate; high-risk ones (dependency changes, push, publish) ask first on Claude. Do not work around a denial — surface it.
+- **Audit + receipts**: Governed sessions append to a hash-chained `.code-warden/audit.jsonl`. Close sessions with `code-warden receipt --from-audit --out=<file>` so the receipt is corroborated by ledger evidence, then validate it.
+- **Baseline ratchet**: In brownfield repos, `code-warden report --baseline` fails only NEW or WORSENED violations; never grow a baselined file or add a fresh secret.
 - **Max file size**: Enforced by `warden-lint.js` (default 400 lines). Split into modules at the limit.
 - **Editing mode**: Patch/diff first. No full rewrites without blast radius check.
 - **Feedback mode**: Adversarial. Correctness over comfort; push back on weak logic.
@@ -179,6 +194,7 @@ Stop and re-anchor immediately if any of these appear:
 | Began implementing without a confirmed Scope Gate | Stop, produce Scope Gate, await confirmation |
 | Began implementing without a confirmed Plan Gate | Stop, produce Plan Gate, await confirmation |
 | Touched a file not declared in Scope Gate | Stop, declare scope expansion, await approval |
+| Write denied by the Scope Lock or Command Risk Gate | Stop, report the denial verbatim, ask the user to expand scope or approve — never bypass |
 | Guessed library syntax without searching docs | Search live docs, correct output |
 | Used stale training data for current facts | Run live research or mark unverified |
 | Chose a default stack/product shape without fit check | Compare alternatives against project constraints |
