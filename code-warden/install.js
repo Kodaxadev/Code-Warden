@@ -13,7 +13,8 @@
  *   node install.js --verify-target=claude       # strict health check for one target; exits nonzero if unknown or not installed
  *   node install.js --verify-target=claude,warp  # check multiple targets
  *   node install.js --target=claude,cursor       # force specific targets (warns if not detected)
- *   node install.js --hooks=claude               # install PreToolUse hooks into ~/.claude/settings.json
+ *   node install.js --hooks=claude               # install lifecycle hooks (PreToolUse/PostToolUse/SessionStart/Stop) into ~/.claude/settings.json
+ *   node install.js --hooks=git                  # install per-repo pre-commit backstop (repo at cwd)
  *   node install.js --uninstall-hooks=claude     # remove code-warden hook entries from ~/.claude/settings.json
  */
 
@@ -25,6 +26,8 @@ const { TARGETS }           = require('./tools/auto-targets');
 const { scanTargets }       = require('./tools/auto-detect');
 const { installWindsurf }   = require('./tools/auto-windsurf-adapter');
 const { getCodexHookRepairHint, inspectHookEntries, inspectHooksFeature } = require('./tools/lib/codex-config');
+const { dispatchHooks, verifyGitHooks } = require('./tools/lib/hook-dispatch');
+const { collectMarkedEntries } = require('./tools/lib/hook-events');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -158,10 +161,6 @@ function parseArgs(argv) {
 }
 
 // ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Doctor helpers — shared by --doctor and --verify-target
 // ---------------------------------------------------------------------------
 
@@ -209,7 +208,7 @@ function checkTarget(t, issues) {
     if (t.id === 'claude') {
       const sp = path.join(t.skillsDir, '..', 'settings.json');
       if (fs.existsSync(sp)) { try {
-        const cw=(JSON.parse(fs.readFileSync(sp,'utf8'))?.hooks?.PreToolUse||[]).flatMap(m=>m.hooks||[]).filter(h=>String(h.description||'').startsWith('code-warden:'));
+        const cw=collectMarkedEntries(JSON.parse(fs.readFileSync(sp,'utf8'))?.hooks); // all managed events
         if(cw.length>0){check(`    Hooks registered (${cw.length})`,true);cw.forEach(h=>{const p=h.args&&h.args[0];check(`    Hook script: ${path.basename(p||'?')}`,!!(p&&fs.existsSync(p)));});}
       } catch { fail('    settings.json parse error'); issues.push('claude: settings.json'); } }
     }
@@ -246,16 +245,17 @@ function runDoctor(scanned) {
 // ---------------------------------------------------------------------------
 
 function runVerifyTarget(ids) {
-  const knownIds = TARGETS.map(t => t.id);
-  const issues   = [];
+  const knownIds   = TARGETS.map(t => t.id);
+  const issues     = [];
+  const runtimeIds = ids.filter(id => id !== 'git'); // 'git' is per-repo, not a runtime target
 
   // Validate all requested IDs before doing any checks
-  const unknown = ids.filter(id => !knownIds.includes(id));
+  const unknown = runtimeIds.filter(id => !knownIds.includes(id));
   if (unknown.length > 0) {
     for (const id of unknown) {
       console.error(`[CodeWarden] [FAIL] Unknown target ID: "${id}"`);
     }
-    console.error(`[CodeWarden]        Known IDs: ${knownIds.join(', ')}`);
+    console.error(`[CodeWarden]        Known IDs: ${knownIds.join(', ')}, git`);
     process.exit(1);
   }
 
@@ -263,10 +263,11 @@ function runVerifyTarget(ids) {
   console.log('');
   log(`Checking target(s): ${ids.join(', ')}\n`);
 
-  for (const id of ids) {
+  for (const id of runtimeIds) {
     const t = TARGETS.find(t => t.id === id);
     checkTarget(t, issues);
   }
+  if (ids.includes('git')) issues.push(...verifyGitHooks({ ok, fail }));
 
   const count = issues.length;
   log(`Verify-target complete. ${count === 0 ? 'No issues found.' : `${count} issue(s) found.`}`);
@@ -294,27 +295,8 @@ async function main() {
   }
 
   if (hooksTarget || uninstallHooksTarget) {  // --hooks / --uninstall-hooks dispatch
-    const HOOK_TARGETS = { claude: 'Claude Code', codex: 'OpenAI Codex' };
-    const ids = hooksTarget || uninstallHooksTarget;
-    const bad = ids.filter(id => !HOOK_TARGETS[id]);
-    if (bad.length > 0) {
-      console.error(`[CodeWarden] hooks support: ${Object.keys(HOOK_TARGETS).join(', ')}. Unknown: ${bad.join(', ')}`);
-      process.exit(1);
-    }
-    for (const id of ids) {
-      const skillDir = path.join(TARGETS.find(t => t.id === id).skillsDir, SKILL_NAME);
-      const mod = require(`./tools/hooks/${id}/${hooksTarget ? 'install' : 'uninstall'}-hooks`);
-      if (hooksTarget) {
-        log(`Installing hooks for ${HOOK_TARGETS[id]}...`);
-        mod.installHooks(skillDir);
-        ok('Hook entries written');
-        log(`Restart ${HOOK_TARGETS[id]} for hooks to take effect.`);
-      } else {
-        log(`Removing hooks for ${HOOK_TARGETS[id]}...`);
-        mod.uninstallHooks();
-        log(`Restart ${HOOK_TARGETS[id]} for changes to take effect.`);
-      }
-    }
+    dispatchHooks({ ids: hooksTarget || uninstallHooksTarget, uninstall: !hooksTarget,
+                    targets: TARGETS, skillName: SKILL_NAME, log, ok });
     return;
   }
 
@@ -389,7 +371,7 @@ async function main() {
 
   console.log('');
   log(`Done. ${success} ${dryRun ? 'planned' : 'installed'}, ${failure} failed.`);
-  if (!dryRun) log('Next: run `code-warden doctor`, then `code-warden report`.\n[CodeWarden] Optional hard hooks: `code-warden hooks claude` or `code-warden hooks codex`.\n[CodeWarden] Restart or refresh your agent session to load the updated skill.');
+  if (!dryRun) log('Next: run `code-warden doctor`, then `code-warden report`.\n[CodeWarden] Optional hard hooks: `code-warden hooks claude`, `code-warden hooks codex`, or per-repo `code-warden hooks git`.\n[CodeWarden] Restart or refresh your agent session to load the updated skill.');
   if (failure > 0) process.exit(1);
 }
 

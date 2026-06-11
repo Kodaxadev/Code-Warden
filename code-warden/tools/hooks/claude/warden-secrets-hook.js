@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 /**
  * warden-secrets-hook.js
- * PreToolUse Claude Code hook: blocks Write/Edit if content contains
- * hardcoded credentials matching zero-trust secret patterns.
+ * PreToolUse Claude Code hook: blocks Write/Edit/NotebookEdit if content
+ * contains hardcoded credentials matching zero-trust secret patterns.
  *
- * Write: scans full content.
- * Edit:  scans new_string only (old content was already committed).
+ * Write:        scans full content.
+ * Edit:         scans new_string only (old content was already committed).
+ * NotebookEdit: scans new_source.
+ *
+ * Config: discovered from the governed project (payload.cwd, walking up for
+ * codewarden.json) with fallback to the skill-dir default. Files matching
+ * secrets.allowlist (relative to the discovered project root) skip the scan.
  *
  * On violation: exit 2 + JSON deny response to stdout.
  * On pass:      exit 0 (no output).
@@ -14,7 +19,9 @@
 'use strict';
 
 const path = require('path');
-const { scanForSecrets } = require('../../lib/secret-patterns');
+const { scanForSecrets }     = require('../../lib/secret-patterns');
+const { loadConfig }         = require('../../lib/config');
+const { matchesProjectPath } = require('../../lib/path-match');
 
 // ---------------------------------------------------------------------------
 // Response helpers
@@ -33,6 +40,13 @@ function deny(reason) {
 
 const allow = () => process.exit(0);
 
+function scanOrDeny(text, fileLabel, where) {
+  const hit = scanForSecrets(text || '');
+  if (hit) {
+    deny(`[CodeWarden] Hardcoded credential scanner: ${hit.label} detected in ${where}${fileLabel}. Use environment variables - no hardcoded credentials.`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -48,24 +62,17 @@ async function main() {
   }
 
   const { tool_name, tool_input = {} } = payload;
+  const baseDir = payload.cwd || process.cwd();
+  const config  = loadConfig(null, baseDir);
+  const file    = path.basename(tool_input.file_path || 'file');
 
-  if (tool_name === 'Write') {
-    const hit = scanForSecrets(tool_input.content || '');
-    if (hit) {
-      const file = path.basename(tool_input.file_path || 'file');
-      deny(`[CodeWarden] Hardcoded credential scanner: ${hit.label} detected in ${file}. Use environment variables — no hardcoded credentials.`);
-    }
-    allow();
+  if (matchesProjectPath(tool_input.file_path, config.projectRoot, config.secretsAllowlist, baseDir)) {
+    allow(); // secrets.allowlist — project opted this path out of scanning
   }
 
-  if (tool_name === 'Edit') {
-    const hit = scanForSecrets(tool_input.new_string || '');
-    if (hit) {
-      const file = path.basename(tool_input.file_path || 'file');
-      deny(`[CodeWarden] Hardcoded credential scanner: ${hit.label} detected in replacement for ${file}. Use environment variables — no hardcoded credentials.`);
-    }
-    allow();
-  }
+  if (tool_name === 'Write')        scanOrDeny(tool_input.content, file, '');
+  if (tool_name === 'Edit')         scanOrDeny(tool_input.new_string, file, 'replacement for ');
+  if (tool_name === 'NotebookEdit') scanOrDeny(tool_input.new_source, file, 'notebook cell for ');
 
   allow();
 }

@@ -114,6 +114,38 @@ export interface TokenPayload {
 
 ---
 
+## v4 addendum: locking the scope and corroborating the receipt
+
+Since v4.0.0 the confirmed scope above can be mechanically enforced instead of
+relying on the agent's memory. After the `[AWAITING CONFIRMATION]` exchange,
+the user (not the agent — agent writes to `.code-warden/` are always denied)
+locks the scope:
+
+```bash
+code-warden scope set --goal="Add JWT auth middleware" \
+  src/middleware/ src/types/auth.types.ts src/routes/api.ts
+```
+
+From here, an agent write to any other path is denied at the hook layer with
+a message telling it to ask the user to run `code-warden scope add <path>`.
+While the lock exists, every governed tool call is also appended to the
+hash-chained audit ledger (`.code-warden/audit.jsonl`).
+
+At the end of the session, the receipt is generated from that evidence
+instead of typed from memory:
+
+```bash
+code-warden receipt --from-audit --out=code-warden-receipt.json
+# prefills scopeGate (goal/filesIn/confirmed), git branch/commit,
+# architecture context, and ledger evidence with chain verification
+code-warden receipt --validate=code-warden-receipt.json
+```
+
+The receipt stays a draft until a human fills the remaining gate fields — and
+a "complete" receipt over a broken ledger chain fails validation.
+
+---
+
 ## What this example demonstrates
 
 | Rule | Where it fired |

@@ -11,12 +11,13 @@ const COMMANDS = {
   doctor:  { desc: 'Verify source integrity and install health',  run: ['install.js', '--doctor'] },
   report:  { desc: 'Generate governance report (.code-warden-report.json)', run: ['tools/governance-report.js', '.'] },
   receipt: { desc: 'Create or validate governance receipt artifacts', run: ['tools/receipt.js'] },
+  scope:   { desc: 'Manage the scope lock (.code-warden/scope.json)',  run: ['tools/scope.js'] },
   references: { desc: 'Recommend governance references for paths', run: ['tools/select-references.js'] },
   'smoke-npx': { desc: 'Smoke-test npm package from a clean temp directory', run: ['tools/smoke-npx.js'] },
   list:    { desc: 'Show detected AI runtimes',                   run: ['install.js', '--list'] },
 };
 
-const HOOK_TARGETS = ['claude', 'codex'];
+const HOOK_TARGETS = ['claude', 'codex', 'git'];
 
 function usage() {
   console.log('Usage: code-warden <command> [options]\n');
@@ -24,8 +25,9 @@ function usage() {
   for (const [name, { desc }] of Object.entries(COMMANDS)) {
     console.log(`  ${name.padEnd(22)} ${desc}`);
   }
-  console.log(`  ${'hooks <target>'.padEnd(22)} Install PreToolUse hooks (${HOOK_TARGETS.join(', ')})`);
-  console.log(`  ${'uninstall-hooks <target>'.padEnd(22)} Remove PreToolUse hooks`);
+  console.log(`  ${'hooks <target>'.padEnd(22)} Install enforcement hooks (${HOOK_TARGETS.join(', ')})`);
+  console.log(`  ${''.padEnd(22)} claude/codex are per-user; git is per-repo (run from the repo)`);
+  console.log(`  ${'uninstall-hooks <target>'.padEnd(22)} Remove enforcement hooks`);
   console.log(`  ${'verify <target>'.padEnd(22)} Strict health check for one runtime`);
   console.log(`\nExamples:`);
   console.log(`  npx code-warden init`);
@@ -35,11 +37,18 @@ function usage() {
   console.log(`  npx code-warden report --format=md`);
   console.log(`  npx code-warden report --format=sarif --out=code-warden.sarif`);
   console.log(`  npx code-warden receipt --template --out=code-warden-receipt.json`);
+  console.log(`  npx code-warden receipt --from-audit --out=code-warden-receipt.json`);
   console.log(`  npx code-warden receipt --validate=code-warden-receipt.json`);
+  console.log(`  npx code-warden scope set --goal="Fix auth bug" src/ lib/utils.js`);
+  console.log(`  npx code-warden scope add src/middleware.js`);
+  console.log(`  npx code-warden scope status`);
   console.log(`  npx code-warden references README.md code-warden/tools/`);
   console.log(`  npx code-warden smoke-npx --package=code-warden@latest`);
   console.log(`  npx code-warden hooks claude`);
   console.log(`  npx code-warden hooks codex`);
+  console.log(`  npx code-warden hooks git        # pre-commit backstop for the repo at cwd`);
+  console.log(`  npx code-warden report --write-baseline`);
+  console.log(`  npx code-warden report --baseline`);
 }
 
 function run(scriptPath, args) {

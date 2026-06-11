@@ -5,12 +5,15 @@ const fs            = require('fs');
 const path          = require('path');
 const os            = require('os');
 const { spawnSync } = require('child_process');
-const { countLines }     = require('./lib/line-count');
-const { collectFiles }   = require('./lib/file-collection');
-const { scanForSecrets } = require('./lib/secret-patterns');
-const { loadConfig }     = require('./lib/config');
-const { formatSarif }    = require('./lib/sarif');
-const { loadRiskPolicy } = require('./lib/risk-policy');
+const { formatSarif }       = require('./lib/sarif');
+const { loadRiskPolicy }    = require('./lib/risk-policy');
+const { getScopeSummary }   = require('./lib/scope-store');
+const { gitInfo }           = require('./lib/git-info');
+const { runScans: runScanCore }         = require('./lib/scan-core');
+const { collectMarkedEntries }          = require('./lib/hook-events');
+const { formatMarkdown, formatSummary } = require('./lib/report-format');
+const { createBaseline, loadBaseline, applyBaselineToChecks,
+        DEFAULT_BASELINE }              = require('./lib/baseline');
 
 const ROOT    = path.join(__dirname, '..');
 const PKG     = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -29,86 +32,32 @@ function parseArgs(argv) {
   const out = outArg ? outArg.slice('--out='.length) : null;
   const configPath = configArg ? configArg.slice('--config='.length) : null;
   const scanPath = args.find(a => !a.startsWith('--')) || '.';
-  return { format, out, scanPath, configPath };
-}
-
-// ---------------------------------------------------------------------------
-// Git metadata
-// ---------------------------------------------------------------------------
-
-function gitInfo() {
-  const run = (gitArgs) => {
-    const r = spawnSync('git', gitArgs, { encoding: 'utf8', timeout: 5000 });
-    return r.status === 0 ? r.stdout.trim() : null;
+  // --write-baseline[=path] / --baseline[=path]; bare flags use the default
+  // baseline filename in the current working directory.
+  const pathFlag = (name) => {
+    const withValue = args.find(a => a.startsWith(`--${name}=`));
+    if (withValue) return withValue.slice(name.length + 3);
+    return args.includes(`--${name}`) ? DEFAULT_BASELINE : null;
   };
   return {
-    branch: run(['rev-parse', '--abbrev-ref', 'HEAD']),
-    commit: run(['rev-parse', '--short', 'HEAD']),
+    format, out, scanPath, configPath,
+    writeBaselinePath: pathFlag('write-baseline'),
+    baselinePath:      pathFlag('baseline'),
   };
 }
 
 // ---------------------------------------------------------------------------
-// File length + secrets (single pass over all files)
+// File length + secrets (single pass; core shared with the Stop hook via
+// lib/scan-core.js)
 // ---------------------------------------------------------------------------
-
-function matchesAnyPrefix(filePath, prefixes) {
-  const normalized = filePath.replace(/\\/g, '/');
-  return prefixes.some(p => normalized.startsWith(p) || normalized === p.replace(/\/$/, ''));
-}
 
 function runScans(scanPath, configPath) {
-  const { maxFileLength, lintExcludePaths, secretsAllowlist } = loadConfig(configPath);
-  const resolved = path.resolve(scanPath);
-
-  if (!fs.existsSync(resolved)) {
-    console.error(`[CodeWarden] Error: scan path not found: ${scanPath}`);
+  try {
+    return runScanCore(scanPath, configPath);
+  } catch (err) {
+    console.error(`[CodeWarden] Error: ${err.message}`);
     process.exit(1);
   }
-
-  const files = [];
-  const scanRootIsDirectory = fs.statSync(resolved).isDirectory();
-  if (scanRootIsDirectory) {
-    collectFiles(resolved, files);
-  } else {
-    files.push(resolved);
-  }
-
-  const lengthViolations = [];
-  const secretViolations = [];
-
-  for (const f of files) {
-    let content;
-    try { content = fs.readFileSync(f, 'utf8'); } catch { continue; }
-
-    const rel = scanRootIsDirectory ? path.relative(resolved, f) : path.basename(f);
-
-    if (!matchesAnyPrefix(rel, lintExcludePaths)) {
-      const lineCount = countLines(content);
-      if (lineCount > maxFileLength) {
-        lengthViolations.push({ file: rel, lines: lineCount, limit: maxFileLength });
-      }
-    }
-
-    const hit = scanForSecrets(content);
-    if (hit && !matchesAnyPrefix(rel, secretsAllowlist)) {
-      secretViolations.push({ file: rel, pattern: hit.label, line: hit.line, column: hit.column });
-    }
-  }
-
-  return {
-    fileLength: {
-      status: lengthViolations.length === 0 ? 'pass' : 'fail',
-      filesScanned: files.length,
-      violations: lengthViolations.length,
-      details: lengthViolations.length > 0 ? lengthViolations : undefined,
-    },
-    secrets: {
-      status: secretViolations.length === 0 ? 'pass' : 'fail',
-      filesScanned: files.length,
-      violations: secretViolations.length,
-      details: secretViolations.length > 0 ? secretViolations : undefined,
-    },
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +77,7 @@ function checkTests() {
 
   const r = spawnSync(process.execPath, [testScript], {
     encoding: 'utf8',
-    timeout: 30000,
+    timeout: 60000, // raised from 30000: suite growth (audit/lifecycle/receipt-audit tests)
     cwd: ROOT,
   });
 
@@ -163,6 +112,9 @@ function checkInstallHealth() {
     'tools/warden-lint.js',
     'tools/verify-secrets.js',
     'tools/get-context.js',
+    'tools/scope.js',
+    'tools/hooks/claude/warden-scope-hook.js',
+    'tools/hooks/claude/warden-audit-hook.js',
   ];
   const missing = required.filter(f => !fs.existsSync(path.join(ROOT, f)));
   return {
@@ -183,9 +135,8 @@ function checkRuntimeHooks() {
   if (fs.existsSync(claudeSettings)) {
     try {
       const s = JSON.parse(fs.readFileSync(claudeSettings, 'utf8'));
-      const hooks = (s?.hooks?.PreToolUse || [])
-        .flatMap(m => m.hooks || [])
-        .filter(h => String(h.description || '').startsWith('code-warden:'));
+      // All managed event arrays (PreToolUse/PostToolUse/SessionStart/Stop).
+      const hooks = collectMarkedEntries(s?.hooks);
       if (hooks.length > 0) {
         const valid = hooks.every(h => h.args?.[0] && fs.existsSync(h.args[0]));
         result.claude = valid ? 'registered' : 'registered_broken';
@@ -221,13 +172,26 @@ function checkRuntimeHooks() {
 // Report assembly
 // ---------------------------------------------------------------------------
 
-function generateReport(scanPath, configPath) {
+function generateReport(scanPath, configPath, baseline, baselinePath) {
   const repo = gitInfo();
-  const { fileLength, secrets } = runScans(scanPath, configPath);
+  const scans = runScans(scanPath, configPath);
+  let { fileLength, secrets } = scans;
+  let baselineInfo = null;
+
+  if (baseline) {
+    const applied = applyBaselineToChecks(scans, baseline);
+    fileLength   = applied.fileLength;
+    secrets      = applied.secrets;
+    baselineInfo = { path: baselinePath, applied: true, legacy: applied.legacy };
+  }
+
   const behavioralTests = checkTests();
   const installHealth = checkInstallHealth();
   const runtimeHooks = checkRuntimeHooks();
   const riskPolicy = loadRiskPolicy();
+  // Scope Lock is per-repo and opt-in: report 'locked' only when the scanned
+  // repository actually has a .code-warden/scope.json.
+  const scope = getScopeSummary(path.resolve(scanPath));
 
   const checks = { fileLength, secrets, behavioralTests, installHealth, riskPolicy };
   const result = Object.values(checks).every(c => c.status === 'pass' || c.status === 'skip')
@@ -239,8 +203,12 @@ function generateReport(scanPath, configPath) {
     timestamp: new Date().toISOString(),
     repository: { branch: repo.branch, commit: repo.commit },
     checks,
+    ...(baselineInfo ? { baseline: baselineInfo } : {}),
     governance: {
-      scopeGate: 'session_only',
+      scopeGate: scope
+        ? { status: 'locked', goal: scope.goal, filesIn: scope.filesIn.length,
+            enforce: scope.enforce }
+        : 'session_only',
       planGate: 'session_only',
       runtimeHooks,
       riskPolicy: {
@@ -253,58 +221,8 @@ function generateReport(scanPath, configPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Markdown formatter
+// Output (formatters live in lib/report-format.js)
 // ---------------------------------------------------------------------------
-
-function formatMarkdown(report) {
-  const badge = s => s === 'pass' ? 'PASS' : s === 'skip' ? 'SKIP' : 'FAIL';
-  const hookLabel = (id) => {
-    const s = report.governance.runtimeHooks[id];
-    if (s === 'registered') return 'verified';
-    if (s === 'registered_broken') return 'broken';
-    if (s === 'not_registered') return 'none';
-    return 'n/a';
-  };
-
-  const healthDetail = report.checks.installHealth.missing
-    ? 'Missing: ' + report.checks.installHealth.missing.join(', ')
-    : 'All source files present';
-
-  const lines = [
-    '## Code-Warden Governance Report',
-    '',
-    '| Check | Result | Details |',
-    '|-------|--------|---------|',
-    `| File length | ${badge(report.checks.fileLength.status)} | ${report.checks.fileLength.filesScanned} files scanned, ${report.checks.fileLength.violations} violations |`,
-    `| Hardcoded credentials | ${badge(report.checks.secrets.status)} | ${report.checks.secrets.filesScanned} files scanned, ${report.checks.secrets.violations} violations |`,
-    `| Behavioral tests | ${badge(report.checks.behavioralTests.status)} | ${report.checks.behavioralTests.tests} tests, ${report.checks.behavioralTests.failures} failures |`,
-    `| Install health | ${badge(report.checks.installHealth.status)} | ${healthDetail} |`,
-    `| Risk policy | ${badge(report.checks.riskPolicy.status)} | ${Object.keys(report.checks.riskPolicy.actions).length} governed actions |`,
-    `| Runtime hooks | — | Claude: ${hookLabel('claude')} / Codex: ${hookLabel('codex')} |`,
-    '',
-    `**Result:** ${report.result === 'pass' ? 'All governed checks passed.' : 'One or more checks failed.'}`,
-    '',
-    `> Generated by Code-Warden v${report.version} at ${report.timestamp}`,
-  ];
-
-  return lines.join('\n');
-}
-
-// ---------------------------------------------------------------------------
-// One-line summary (default mode stdout)
-// ---------------------------------------------------------------------------
-
-function formatSummary(report) {
-  const c = report.checks;
-  const parts = [
-    `lint:${c.fileLength.status}`,
-    `secrets:${c.secrets.status}`,
-    `tests:${c.behavioralTests.status}`,
-    `health:${c.installHealth.status}`,
-    `risk:${c.riskPolicy.status}`,
-  ];
-  return `[CodeWarden] Governance report: ${report.result.toUpperCase()} (${parts.join(', ')})`;
-}
 
 function formatReport(report, format) {
   if (format === 'md') return formatMarkdown(report);
@@ -324,8 +242,34 @@ function writeReport(outPath, content) {
 // Main
 // ---------------------------------------------------------------------------
 
-const { format, out, scanPath, configPath } = parseArgs(process.argv);
-const report = generateReport(scanPath, configPath);
+const { format, out, scanPath, configPath,
+        writeBaselinePath, baselinePath } = parseArgs(process.argv);
+
+// --write-baseline: record current violations as the ratchet floor and exit.
+if (writeBaselinePath) {
+  const scans = runScans(scanPath, configPath);
+  const baseline = createBaseline(scans);
+  const dest = path.resolve(writeBaselinePath);
+  fs.writeFileSync(dest, JSON.stringify(baseline, null, 2) + '\n', 'utf8');
+  console.log(`[CodeWarden] Baseline written to ${dest}`);
+  console.log(`[CodeWarden] Recorded ${baseline.fileLength.length} file-length and ${baseline.secrets.length} secret finding(s).`);
+  console.log('[CodeWarden] Commit this file; future runs with --baseline fail only on new or worsened violations.');
+  process.exit(0);
+}
+
+// --baseline: a missing file is a hard error - silently ignoring it would
+// fake a gate.
+let baselineData = null;
+if (baselinePath) {
+  try {
+    baselineData = loadBaseline(path.resolve(baselinePath));
+  } catch (err) {
+    console.error(`[CodeWarden] Error: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+const report = generateReport(scanPath, configPath, baselineData, baselinePath);
 
 if (out) {
   writeReport(out, formatReport(report, format));

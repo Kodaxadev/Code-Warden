@@ -113,13 +113,29 @@ function validateReceipt(receipt) {
     errors.push('validation.canProveCompliance must be true for complete receipts');
   }
 
+  // Optional corroboration block (receipt --from-audit). Additive: absent on
+  // older receipts and never required. But a receipt claiming completion on
+  // top of a broken evidence chain is a contradiction - fail it loudly.
+  const audit = receipt.audit;
+  if (audit !== undefined) {
+    if (!isObject(audit)) {
+      errors.push('audit must be an object when present');
+    } else if (audit.chainValid === false) {
+      errors.push('audit.chainValid is false - a complete receipt cannot rest on a broken audit ledger chain' +
+        (audit.brokenAt ? ` (broken at line ${audit.brokenAt})` : ''));
+    }
+  }
+
   return errors;
 }
 
 function parseArgs(argv) {
-  const options = { template: false, out: null, validate: null };
+  // fromAudit: false = off, true = default ledger path, string = explicit path
+  const options = { template: false, out: null, validate: null, fromAudit: false };
   for (const arg of argv) {
     if (arg === '--template') options.template = true;
+    else if (arg === '--from-audit') options.fromAudit = true;
+    else if (arg.startsWith('--from-audit=')) options.fromAudit = arg.slice('--from-audit='.length);
     else if (arg.startsWith('--out=')) options.out = arg.slice('--out='.length);
     else if (arg.startsWith('--validate=')) options.validate = arg.slice('--validate='.length);
     else throw new Error(`Unknown option: ${arg}`);
@@ -129,6 +145,7 @@ function parseArgs(argv) {
 
 function usage() {
   console.log('Usage: code-warden receipt --template --out=<file>');
+  console.log('       code-warden receipt --from-audit[=<ledger path>] --out=<file>');
   console.log('       code-warden receipt --validate=<file>');
 }
 
@@ -144,7 +161,7 @@ function readJson(file) {
   return JSON.parse(raw.replace(/^\uFEFF/, ''));
 }
 
-function main(argv = process.argv.slice(2)) {
+function main(argv = process.argv.slice(2), cwd = process.cwd()) {
   let options;
   try {
     options = parseArgs(argv);
@@ -162,6 +179,28 @@ function main(argv = process.argv.slice(2)) {
     const resolved = writeJson(options.out, createTemplate());
     console.log(`[CodeWarden] Receipt template written to ${resolved}`);
     return 0;
+  }
+
+  if (options.fromAudit !== false) {
+    if (!options.out) {
+      console.error('Missing required --out=<file> for --from-audit');
+      return 1;
+    }
+    const { buildAuditReceipt } = require('./lib/receipt-audit');
+    try {
+      const { receipt, summary } = buildAuditReceipt({
+        template:   createTemplate(),
+        cwd,
+        ledgerPath: typeof options.fromAudit === 'string' ? options.fromAudit : null,
+      });
+      const resolved = writeJson(options.out, receipt);
+      console.log(`[CodeWarden] Receipt prefilled from audit ledger: ${summary}`);
+      console.log(`[CodeWarden] Draft written to ${resolved} - complete the remaining gate fields, then validate.`);
+      return 0;
+    } catch (error) {
+      console.error(`[CodeWarden] ${error.message}`);
+      return 1;
+    }
   }
 
   if (options.validate) {

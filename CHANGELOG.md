@@ -5,27 +5,56 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## Unreleased
+## v4.0.0 - 2026-06-10
 
-- Added Codex config handling to `--hooks=codex`: the installer now enables
-  `[features].hooks = true` in `~/.codex/config.toml` and removes deprecated
-  `[features].codex_hooks` entries when present.
-- Updated Codex hook health checks so registered hooks verify both hook script
-  paths and feature-flag enablement without making optional hooks mandatory for
-  base installs.
-- Added tests for Codex config migration and hook feature enablement.
-- Improved first-run onboarding in CLI help, install output, and quickstart docs
-  so users see `init -> doctor -> report -> optional hooks`.
-- Added Codex hook repair guidance so doctor/verify can point partial hook setup
-  back to `code-warden hooks codex`.
-- Added `code-warden verify <target>` as a public CLI wrapper for strict
-  per-runtime install and hook health checks.
-- Clarified target-specific onboarding examples for CLI and direct installer
-  users.
-- Added `code-warden smoke-npx` as a public CLI wrapper for clean-temp npm
-  package smoke testing.
-- Hardened release preflight so tags fail before publish when the npm version
-  already exists, and documented trusted-publisher setup.
+**Enforcement layers: scope lock, command risk gate, audit ledger, corroborated receipts, baseline ratchet, git backstop, and lifecycle hooks.**
+
+Major version: the report's `session.scopeGate` field becomes an object when a
+scope lock exists (was always a string), everything under `.code-warden/` is
+agent-write-protected unconditionally, and hook registration expands to new
+events. **Upgrade note: re-run `code-warden hooks claude` (and `hooks codex`)
+after updating — old registrations keep working but miss NotebookEdit/command
+coverage and all new events and gates.**
+
+### Scanner and hook hardening
+
+- Added six secret patterns: Anthropic (`sk-ant-`), Google (`AIza`), GitLab (`glpat-`), npm (`npm_`), Hugging Face (`hf_`), and JWT.
+- All secret matches are now reported per file (`scanForAllSecrets`), not first-match-only.
+- Hooks discover the governed project's own `codewarden.json` (walking up from the working directory, stopping at the `.git` boundary), so `lint.exclude_paths`, `secrets.allowlist`, and thresholds behave identically in hooks and CI.
+- Claude write hooks now cover `Write|Edit|NotebookEdit`; new `warden-command-hook.js` scans `Bash|PowerShell` command strings for credentials.
+- `pre_flight_trigger_lines` is wired as an "ask" gate on single changes over 150 lines; `human_checkpoint_files` and `exempt_from_blast_radius` are honestly documented as prompt-layer-only.
+
+### Git backstop and baseline ratchet
+
+- Added `code-warden hooks git`: a marker-managed per-repo pre-commit hook that runs staged-content lint and secrets scans (`git show :path`) with exclude/allowlist parity. `git commit --no-verify` bypasses it — documented, not hidden. `code-warden verify git` checks the installation.
+- Added `report --write-baseline[=path]` and `report --baseline[=path]` ratchet mode: only NEW or WORSENED violations fail; legacy findings are counted separately ("N new / M legacy"). Secrets are fingerprinted by sha256 of the trimmed matched line — no raw secrets in baselines. SARIF carries fresh findings only. A missing baseline file is a hard error.
+- Added a `baseline` input to the GitHub Action and brownfield adoption guidance to the CI template.
+
+### Scope Lock and Command Risk Gate
+
+- Added `code-warden scope set|add|remove|clear|status` managing `<repoRoot>/.code-warden/scope.json` (`goal`, `enforce`, `filesIn`, `expansions[]` audit trail); `scope set --no-enforce` records scope without blocking.
+- Write hooks (Claude `Write`/`Edit`/`NotebookEdit`, Codex `apply_patch`) deny out-of-scope edits while a scope is locked; the deny message tells the agent to ask the user to run `code-warden scope add <path>`. Strictly opt-in — no scope file means no enforcement.
+- Added a Command Risk Gate to both command hooks. Default blocked (deny): `rm_rf_root`, `rd_root`, `remove_item_root`, `git_reset_hard`, `git_push_force` (`--force-with-lease` exempt), `git_clean_force`, `git_history_rewrite`, `curl_pipe_shell`, `ps_web_pipe_iex`, `chmod_777_root`. Default high (ask on Claude; allow on Codex, which has no ask equivalent): `package_install` (bare `npm install`/`ci` allowed), `npm_publish`, `git_push`, `recursive_delete`, `remove_item_recurse`, `git_discard_changes`. Configurable via `risk_policy.command_rules` (id-based override/disable; user rules merge with defaults).
+- Governance report: `session.scopeGate` reports a `{status: 'locked', goal, filesIn, enforce}` object when a scope exists (previously always the string `'session_only'`) — JSON consumers should handle both shapes.
+
+### Audit ledger, lifecycle hooks, and corroborated receipts
+
+- Added a PostToolUse audit ledger: `.code-warden/audit.jsonl` with a sha256 hash chain (GENESIS-anchored). Command targets are secret-redacted and truncated to 300 chars. Auto-on while a scope lock exists, else `audit.enabled` config (explicit `false` wins). Claude sessions only.
+- `.code-warden/` governance artifacts are unconditionally write-protected from agents (both runtimes), even with no scope lock.
+- Added a SessionStart hook that injects architecture context (shared `lib/context-discovery.js`, also used by `get-context.js`) and scope status.
+- Added an opt-in Stop hook (`session.verify_on_stop`, default `false`) that blocks completion on FRESH lint/secret violations; loop-guarded via `stop_hook_active` and baseline-aware.
+- Added `receipt --from-audit[=path] --out=<file>`: prefills draft receipts from `scope.json`, architecture context, git branch/commit (`lib/git-info.js`), and ledger evidence with chain verification. A `complete` receipt with `audit.chainValid: false` fails validation. Receipt schema is additive — v1 receipts still validate.
+- Generalized hook management across PreToolUse/PostToolUse/SessionStart/Stop (`lib/hook-events.js`); behavioral-test timeout raised to 60s.
+
+### Previously unreleased changes (since v3.4.0)
+
+- `--hooks=codex` now enables `[features].hooks = true` in `~/.codex/config.toml` and removes deprecated `[features].codex_hooks` entries; health checks verify both hook script paths and feature-flag enablement without making optional hooks mandatory.
+- Added `code-warden verify <target>` and `code-warden smoke-npx` as public CLI wrappers; improved first-run onboarding (`init -> doctor -> report -> optional hooks`) and Codex hook repair guidance.
+- Hardened release preflight so tags fail before publish when the npm version already exists; documented trusted-publisher setup.
+
+### New config keys
+
+- `lint.exclude_paths` and `secrets.allowlist` (now hook-honored), `risk_policy.command_rules`, `audit.enabled`, `session.verify_on_stop`.
 
 ---
 

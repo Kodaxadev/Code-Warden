@@ -17,6 +17,78 @@ Each entry:
 
 ---
 
+## 2026-06-10 - Scope lock is opt-in and CLI-owned
+
+- **Decision**: The scope lock lives in `<repoRoot>/.code-warden/scope.json`, is created and expanded only through the user-run `code-warden scope` CLI, and is strictly opt-in (no file means no enforcement). Agent writes to anything under `.code-warden/` are denied unconditionally by the write hooks, scope lock or not.
+- **Alternatives considered**: Auto-locking scope from the chat-declared Scope Gate — rejected because the CLI cannot verify what was confirmed in chat, and silent auto-locks would surprise users. Letting agents edit the scope file with logging — rejected because a lock the locked party can rewrite is not a lock.
+- **Reasoning**: Enforcement must be anchored in an artifact the agent cannot modify. Keeping it opt-in preserves the existing zero-friction default; keeping it CLI-owned means every expansion is a visible user action recorded in `expansions[]`. Honest limit: an agent can run `scope add` via the shell, but the command is visible in session and the expansion is audited — the lock makes scope creep auditable, not impossible.
+- **Files affected**: `tools/scope.js`, `tools/lib/scope-store.js`, `tools/hooks/claude/warden-scope-hook.js`, `tools/hooks/codex/warden-apply-patch-hook.js`, `bin/code-warden.js`, `tools/tests/scope-tests.js`
+
+---
+
+## 2026-06-10 - Command risk gate defaults conservative with id-based overrides
+
+- **Decision**: Ship a Command Risk Gate in both command hooks with two enforced tiers: `blocked` denies outright (root-targeting recursive deletes, `git reset --hard`, force push, `git clean -f`, history rewrites, pipe-to-shell, `chmod -R 777 /`); `high` asks for confirmation on Claude and allows silently on Codex, which exposes no "ask" decision (dependency changes, publish, push, recursive deletes, working-tree discards). Rules merge by `id`: reusing a default id replaces it, `"tier": "off"`/`"allow"` disables it, and invalid user patterns are skipped with warnings.
+- **Alternatives considered**: Block the `high` tier too — rejected because a false deny on a routine `git push` erodes trust faster than a missed exotic command. Pattern-list config without ids — rejected because users could not surgically disable or replace one default rule.
+- **Reasoning**: The defaults target irreversible or remote-code-execution commands only; everything else is a question, not a wall. The Codex asymmetry is documented rather than papered over: where the runtime cannot ask, Code-Warden does not pretend it asked.
+- **Files affected**: `tools/lib/command-risk.js`, `tools/hooks/claude/warden-command-hook.js`, `tools/hooks/codex/warden-bash-hook.js`, `codewarden.json`, `tools/tests/command-risk-tests.js`
+
+---
+
+## 2026-06-10 - Baselines ratchet: growth is a fresh violation, fingerprints carry no secrets
+
+- **Decision**: `report --baseline` fails only NEW or WORSENED violations; legacy findings are reported separately ("N new / M legacy"). A baselined oversized file fails again the moment it grows past its recorded count. Baselined secrets are fingerprinted by sha256 of the trimmed matched line — raw secret text never enters the baseline. A missing baseline file is a hard error, and SARIF carries fresh findings only.
+- **Alternatives considered**: Grandfather files at any size until refactored — rejected because that lets legacy files absorb unlimited new code. Store line numbers for secrets — rejected because line drift would silently break the baseline; content hashes survive moves. Treat a missing baseline as "no baseline" — rejected because a typo'd path must not silently disable the gate.
+- **Reasoning**: Brownfield repos cannot adopt a hard gate that fails on day one for pre-existing debt. Ratcheting freezes the debt floor while keeping full enforcement for everything new.
+- **Files affected**: `tools/lib/baseline.js`, `tools/governance-report.js`, `action.yml`, `templates/ci/github-actions.yml`, `tools/tests/baseline-tests.js`
+
+---
+
+## 2026-06-10 - Audit ledger is hash-chained and auto-enabled by scope locks
+
+- **Decision**: A PostToolUse hook appends one entry per governed tool call to `.code-warden/audit.jsonl`, each entry hashed as `sha256(prev + canonical entry JSON)` anchored at `GENESIS`. Commands are secret-redacted and truncated to 300 chars; no file contents are stored. Enablement: on while a scope lock exists, else `audit.enabled` config, with explicit `false` winning over a scope lock. Claude sessions only.
+- **Alternatives considered**: Plain append-only JSONL without chaining — rejected because tamper-evidence is the point of an audit artifact. Always-on ledger — rejected because ungoverned casual sessions should not accumulate per-call logs by default.
+- **Reasoning**: A scope lock is an explicit signal that the session is governed, so evidence collection should follow automatically. The hash chain makes edits detectable rather than preventable — consistent with Code-Warden's honesty-over-theater posture. The ledger is per-session evidence and should be gitignored; receipts are the durable artifact.
+- **Files affected**: `tools/lib/audit-ledger.js`, `tools/hooks/claude/warden-audit-hook.js`, `tools/lib/hook-events.js`, `tools/tests/audit-ledger-tests.js`
+
+---
+
+## 2026-06-10 - Receipts graduate from honest to corroborated
+
+- **Decision**: `receipt --from-audit[=path] --out=<file>` prefills a draft receipt from the scope lock (confirmed/goal/filesIn), discovered architecture context, git branch/commit, and audit-ledger evidence including chain verification. A `complete` receipt whose `audit.chainValid` is `false` fails validation. The audit block is additive — schemaVersion 1 receipts without it still validate.
+- **Alternatives considered**: Mark from-audit receipts complete automatically — rejected because the CLI still cannot verify the human confirmations; drafts stay drafts until a person finishes them. A new schema version — rejected because the change is purely additive and a version bump would orphan existing receipts.
+- **Reasoning**: v3.4.0 receipts were honest but unsupported claims. Corroboration ties the claimed scope to a tamper-evident record of what actually happened, without overclaiming what the tooling can know.
+- **Files affected**: `tools/receipt.js`, `tools/lib/receipt-audit.js`, `tools/lib/git-info.js`, `tools/lib/context-discovery.js`, `tools/tests/receipt-audit-tests.js`
+
+---
+
+## 2026-06-10 - Git pre-commit is the runtime-agnostic backstop
+
+- **Decision**: `code-warden hooks git` installs a marker-managed pre-commit hook in the repository at cwd (per-repo, unlike the per-user claude/codex hooks) that scans staged content via `git show :path` with the same exclude/allowlist behavior as CI. `git commit --no-verify` bypasses it, and the docs say so plainly.
+- **Alternatives considered**: Husky or a hook framework — rejected to preserve zero dependencies. Scanning the working tree instead of the index — rejected because the commit gate must judge what is being committed, not what happens to be on disk.
+- **Reasoning**: Runtime hooks only cover agents whose runtimes expose hook surfaces. The pre-commit hook catches anything that reaches `git commit` — any agent, any editor, any human — making it the broadest local layer between the prompt and CI. Marker management keeps installs idempotent and uninstalls surgical alongside user-owned hook content.
+- **Files affected**: `tools/lib/hook-dispatch.js`, `install.js`, `bin/code-warden.js`, `tools/tests/git-hook-tests.js`
+
+---
+
+## 2026-06-10 - Stop verification is opt-in to avoid hostile UX
+
+- **Decision**: The Stop hook is registered for all hook installs but inert until `session.verify_on_stop` is `true`. When enabled, it re-runs fast in-process lint/secret scans and blocks completion only on FRESH violations (baseline-aware), with a loop guard honoring `stop_hook_active`.
+- **Alternatives considered**: On by default — rejected because a session that cannot end while legacy debt exists is hostile, especially in brownfield repos. Running the full governance report on Stop — rejected because behavioral tests and git subprocesses are too slow for an end-of-turn gate.
+- **Reasoning**: Blocking an agent's completion is the most intrusive enforcement point available; it must be deliberate, fast, loop-safe, and unable to trap users on pre-existing problems.
+- **Files affected**: `tools/hooks/claude/warden-stop-hook.js`, `tools/lib/scan-core.js`, `codewarden.json`, `tools/tests/lifecycle-hook-tests.js`
+
+---
+
+## 2026-06-10 - Hooks read the governed project's config for CI/hook parity
+
+- **Decision**: All hooks discover the governed project's own `codewarden.json` by walking up from the working directory (checking `codewarden.json` and `code-warden/codewarden.json` at each level, stopping at the first `.git` boundary), falling back to the installed skill's config.
+- **Alternatives considered**: Skill-dir config only — rejected because hooks and CI then enforce different thresholds in the same repo, which users experience as nondeterminism. Per-project hook registration — rejected because Claude/Codex hooks are user-level and should not require re-registration per repo.
+- **Reasoning**: A governance gate that gives different answers locally and in CI trains users to ignore it. The `.git` boundary stops a session from inheriting config from outside the repository.
+- **Files affected**: `tools/lib/config.js`, all hooks under `tools/hooks/`, `tools/tests/config-discovery-tests.js`
+
+---
+
 ## 2026-05-19 - Codex hook install owns feature-flag enablement
 
 - **Decision**: `--hooks=codex` now enables `[features].hooks = true` in `~/.codex/config.toml` and removes deprecated `[features].codex_hooks` entries when found. Doctor and `--verify-target=codex` validate feature enablement when Code-Warden Codex hooks are registered.

@@ -17,6 +17,9 @@
   "secrets": {
     "allowlist": []
   },
+  "session": {
+    "verify_on_stop": false
+  },
   "reference_selection": {
     "rules": [
       {
@@ -66,6 +69,7 @@
     }
   },
   "risk_policy": {
+    "command_rules": [],
     "actions": {
       "read_only": {
         "tier": "low",

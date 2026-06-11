@@ -34,6 +34,14 @@ inputs:
     description: Path to a codewarden.json config file in the repo. Overrides built-in defaults.
     required: false
     default: ''
+  baseline:
+    description: >-
+      Path to a committed code-warden baseline file (write one locally with
+      `npx code-warden report --write-baseline`). When set and the file
+      exists, only NEW or WORSENED violations fail the gate; baselined legacy
+      findings are reported but excluded from SARIF and the result.
+    required: false
+    default: ''
 
 outputs:
   report-path:
@@ -69,7 +77,11 @@ runs:
         if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
           CONFIG_FLAG="--config=${{ inputs.config }}"
         fi
-        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" $CONFIG_FLAG
+        BASELINE_FLAG=""
+        if [ -n "${{ inputs.baseline }}" ] && [ -f "${{ inputs.baseline }}" ]; then
+          BASELINE_FLAG="--baseline=${{ inputs.baseline }}"
+        fi
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" $CONFIG_FLAG $BASELINE_FLAG
 
     - name: Publish governance summary
       if: ${{ always() && inputs.summary == 'true' }}
@@ -79,7 +91,11 @@ runs:
         if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
           CONFIG_FLAG="--config=${{ inputs.config }}"
         fi
-        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md $CONFIG_FLAG >> "$GITHUB_STEP_SUMMARY" || true
+        BASELINE_FLAG=""
+        if [ -n "${{ inputs.baseline }}" ] && [ -f "${{ inputs.baseline }}" ]; then
+          BASELINE_FLAG="--baseline=${{ inputs.baseline }}"
+        fi
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=md $CONFIG_FLAG $BASELINE_FLAG >> "$GITHUB_STEP_SUMMARY" || true
 
     - name: Generate SARIF report
       if: ${{ always() && inputs.sarif == 'true' }}
@@ -89,7 +105,11 @@ runs:
         if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
           CONFIG_FLAG="--config=${{ inputs.config }}"
         fi
-        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=sarif $CONFIG_FLAG > "${{ steps.sarif-path.outputs.path }}" || true
+        BASELINE_FLAG=""
+        if [ -n "${{ inputs.baseline }}" ] && [ -f "${{ inputs.baseline }}" ]; then
+          BASELINE_FLAG="--baseline=${{ inputs.baseline }}"
+        fi
+        node "${{ github.action_path }}/code-warden/tools/governance-report.js" "${{ inputs.path }}" --format=sarif $CONFIG_FLAG $BASELINE_FLAG > "${{ steps.sarif-path.outputs.path }}" || true
         test -s "${{ steps.sarif-path.outputs.path }}"
 
     - name: Upload SARIF report

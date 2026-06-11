@@ -2,10 +2,18 @@
 /**
  * warden-lint-hook.js
  * PreToolUse Claude Code hook: blocks Write/Edit if the resulting file would
- * exceed the configured line limit.
+ * exceed the configured line limit. Asks for confirmation (permissionDecision
+ * "ask") when a single change exceeds pre_flight_trigger_lines without
+ * breaching the hard limit. NotebookEdit is explicitly allowed — cells are
+ * not files, so the length gate does not apply.
  *
- * Payload (stdin JSON):  { tool_name, tool_input: { file_path, content|new_string, ... } }
+ * Config: discovered from the governed project (payload.cwd, walking up for
+ * codewarden.json) with fallback to the skill-dir default. Honors
+ * lint.exclude_paths relative to the discovered project root.
+ *
+ * Payload (stdin JSON):  { tool_name, tool_input: { file_path, content|new_string, ... }, cwd }
  * On violation: exit 2 + JSON deny response to stdout.
+ * On pre-flight trigger: exit 0 + JSON ask response to stdout.
  * On pass:      exit 0 (no output).
  */
 
@@ -13,14 +21,9 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { countLines } = require('../../lib/line-count');
-const { loadConfig } = require('../../lib/config');
-
-// ---------------------------------------------------------------------------
-// Config — loaded via shared module; falls back to 400 if missing
-// ---------------------------------------------------------------------------
-
-const { maxFileLength: MAX_LINES } = loadConfig();
+const { countLines }         = require('../../lib/line-count');
+const { loadConfig }         = require('../../lib/config');
+const { matchesProjectPath } = require('../../lib/path-match');
 
 // ---------------------------------------------------------------------------
 // Skip list — file types where line counting is meaningless
@@ -47,18 +50,26 @@ function shouldSkip(filePath) {
 // Response helpers
 // ---------------------------------------------------------------------------
 
-function deny(reason) {
+function respond(decision, reason, exitCode) {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'PreToolUse',
-      permissionDecision: 'deny',
+      permissionDecision: decision,
       permissionDecisionReason: reason,
     },
   }));
-  process.exit(2);
+  process.exit(exitCode);
 }
 
+const deny  = (reason) => respond('deny', reason, 2);
+const ask   = (reason) => respond('ask', reason, 0);
 const allow = () => process.exit(0);
+
+function preFlightGate(changeLines, trigger) {
+  if (changeLines > trigger) {
+    ask(`[CodeWarden] Pre-flight gate: single change of ${changeLines} lines exceeds ${trigger}. Confirm this large block is intentional.`);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Main
@@ -77,12 +88,24 @@ async function main() {
   const { tool_name, tool_input = {} } = payload;
   const { file_path, content, old_string, new_string, replace_all } = tool_input;
 
+  if (tool_name === 'NotebookEdit') allow(); // cells are not files — no length gate
+
+  const baseDir = payload.cwd || process.cwd();
+  const config  = loadConfig(null, baseDir);
+  const MAX_LINES = config.maxFileLength;
+  const TRIGGER   = config.preFlightTriggerLines;
+
+  if (matchesProjectPath(file_path, config.projectRoot, config.lintExcludePaths, baseDir)) {
+    allow(); // lint.exclude_paths — project opted this path out of length checks
+  }
+
   if (tool_name === 'Write') {
     if (shouldSkip(file_path)) allow();
     const lines = countLines(content || '');
     if (lines > MAX_LINES) {
       deny(`[CodeWarden] File length gate: ${path.basename(file_path)} would be ${lines} lines (limit ${MAX_LINES}). Split into modules before writing.`);
     }
+    preFlightGate(lines, TRIGGER);
     allow();
   }
 
@@ -97,6 +120,7 @@ async function main() {
     if (lines > MAX_LINES) {
       deny(`[CodeWarden] File length gate: ${path.basename(file_path)} would be ${lines} lines after edit (limit ${MAX_LINES}). Split into modules before editing.`);
     }
+    preFlightGate(countLines(new_string || ''), TRIGGER);
     allow();
   }
 

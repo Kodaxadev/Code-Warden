@@ -14,6 +14,8 @@
 #   - Markdown summary on the workflow run / PR (via GITHUB_STEP_SUMMARY)
 #   - Uploaded artifact for audit trail (90-day retention)
 #   - SARIF output is available in Code-Warden v3.4.0 and newer.
+#   - Baseline ratchet mode (--write-baseline / --baseline) is available in
+#     Code-Warden v4.0.0 and newer.
 #
 # How code-warden is made available in CI (choose one):
 #
@@ -31,6 +33,16 @@
 #   max_file_length          (default 400 lines)
 #   pre_flight_trigger_lines (default 150 lines)
 #   human_checkpoint_files   (default 2 files)
+#
+# Brownfield adoption (baseline / ratchet mode):
+#   Existing repos can gate on NEW or WORSENED violations only. Write a
+#   baseline locally, commit it, then pass --baseline to the report steps:
+#     npx code-warden report --write-baseline
+#     git add .code-warden-baseline.json
+#   Then append `--baseline=.code-warden-baseline.json` to each
+#   governance-report.js invocation below. Baselined files are allowed only
+#   until they GROW; baselined secrets are fingerprinted by content hash
+#   (never the raw value) so line moves do not break the baseline.
 
 name: Code-Warden Quality Gate
 
@@ -41,7 +53,7 @@ on:
     branches: [main, master]
 
 env:
-  CODE_WARDEN_VERSION: v3.4.0
+  CODE_WARDEN_VERSION: v4.0.0
   CODE_WARDEN_PATH: .code-warden-ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
